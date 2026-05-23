@@ -88,6 +88,7 @@ export default class WeatherExtension extends Extension {
         this._fadeTimeoutId = 0;
         this._menuFadeInId = 0;
         this._rebuildFadeInId = 0;
+        this._rebuildDelayId = 0;
         this._settings = null;
         this._allForecast = [];
         this._forecastPage = 0;
@@ -539,9 +540,18 @@ export default class WeatherExtension extends Extension {
             bgItem.add_child(bgContainer);
             this._indicator.menu.addMenuItem(bgItem);
 
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+            if (this._rebuildDelayId > 0) {
+                GLib.Source.remove(this._rebuildDelayId);
+                this._rebuildDelayId = 0;
+            }
+            this._rebuildDelayId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+                this._rebuildDelayId = 0;
                 let fi = 0;
                 const fiSteps = 6;
+                if (this._rebuildFadeInId > 0) {
+                    GLib.Source.remove(this._rebuildFadeInId);
+                    this._rebuildFadeInId = 0;
+                }
                 this._rebuildFadeInId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 15, () => {
                     fi++;
                     if (this._bgContainer) {
@@ -919,9 +929,18 @@ export default class WeatherExtension extends Extension {
             bgItem.add_child(bgContainer);
             this._indicator.menu.addMenuItem(bgItem);
 
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+            if (this._rebuildDelayId > 0) {
+                GLib.Source.remove(this._rebuildDelayId);
+                this._rebuildDelayId = 0;
+            }
+            this._rebuildDelayId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+                this._rebuildDelayId = 0;
                 let fi = 0;
                 const fiSteps = 6;
+                if (this._rebuildFadeInId > 0) {
+                    GLib.Source.remove(this._rebuildFadeInId);
+                    this._rebuildFadeInId = 0;
+                }
                 this._rebuildFadeInId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 15, () => {
                     fi++;
                     if (this._bgContainer) {
@@ -957,6 +976,10 @@ export default class WeatherExtension extends Extension {
             GLib.Source.remove(this._rebuildFadeInId);
             this._rebuildFadeInId = 0;
         }
+        if (this._rebuildDelayId > 0) {
+            GLib.Source.remove(this._rebuildDelayId);
+            this._rebuildDelayId = 0;
+        }
         if (this._settingsHandlerIds) {
             for (const id of this._settingsHandlerIds)
                 this._settings?.disconnect(id);
@@ -975,8 +998,11 @@ export default class WeatherExtension extends Extension {
         this._location = '';
         this._bgContainer?.destroy();
         this._bgContainer = null;
+        this._box?.destroy();
         this._box = null;
+        this._icon?.destroy();
         this._icon = null;
+        this._label?.destroy();
         this._label = null;
         this._indicator?.destroy();
         this._indicator = null;
