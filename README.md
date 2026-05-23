@@ -14,7 +14,7 @@ GNOME Shell extension showing current weather in the panel with an hourly and da
 - **Open-Meteo** — free weather API, no key required
 - **Global** — US shows `City, ST`, everywhere else shows `City, Country`
 
-![Screenshot](screenshot.png)
+![Screenshot](forecast-screenshot.png)
 
 ## Compatibility
 
