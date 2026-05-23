@@ -2,7 +2,7 @@
 
 GNOME Shell extension showing current weather in the panel with an hourly and daily forecast popup.
 
-![Screenshot](screenshot.png)
+<img src="screenshot.png" alt="Screenshot" align="left" width="400">
 
 ## Features
 
