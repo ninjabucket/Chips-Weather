@@ -3,12 +3,6 @@
     padding: 1px 8px;
 }
 
-.weather-forecast-time {
-    min-width: 40px;
-    font-weight: bold;
-    font-size: 12px;
-}
-
 .weather-forecast-icon {
     icon-size: 20px;
     min-width: 24px;
@@ -16,13 +10,6 @@
 
 .weather-precip-icon {
     icon-size: 12px;
-}
-
-.weather-forecast-temp {
-    min-width: 40px;
-    text-align: right;
-    font-size: 12px;
-    font-weight: bold;
 }
 
 .weather-bg-box {

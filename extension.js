@@ -92,7 +92,6 @@ export default class WeatherExtension extends Extension {
         this._settings = null;
         this._allForecast = [];
         this._forecastPage = 0;
-        this._slideIn = false;
         this._location = '';
         this._bgContainer = null;
         this._viewMode = 'hourly';
@@ -220,6 +219,7 @@ export default class WeatherExtension extends Extension {
     }
 
     _rebuildMenu() {
+        const perPage = 8;
         if (this._viewMode === 'daily') {
             this._rebuildDailyMenu();
             return;
@@ -244,7 +244,6 @@ export default class WeatherExtension extends Extension {
             locBox.add_child(locLabel);
 
             if (this._allDaily.length > 0) {
-                const perPage = 8;
                 const firstItem = forecast[this._forecastPage * perPage];
                 const pageDay = firstItem ? firstItem.day : this._allDaily[0]?.date;
                 let headerDay = this._allDaily[0];
@@ -291,7 +290,6 @@ export default class WeatherExtension extends Extension {
             this._indicator.menu.addMenuItem(headerItem);
 
             if (this._allForecast.length > 0) {
-                const perPage = 8;
                 const todayDay = this._allForecast[0]?.day || '';
 
                 const headerItems = forecast.slice(
@@ -312,6 +310,8 @@ export default class WeatherExtension extends Extension {
             const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
                 ? '°F' : '°C';
             const perPage = 8;
+            const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
+            const useUvColors = this._settings?.get_boolean('use-colored-uv') !== false;
 
             const maxPage = Math.ceil(forecast.length / perPage) - 1;
             const pageItems = forecast.slice(
@@ -336,7 +336,6 @@ export default class WeatherExtension extends Extension {
                     icon_name: pageItems[i].icon, style_class: 'weather-forecast-icon', style: 'color: #ccc;',
                 });
                 const t = pageItems[i].temp;
-                const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
                 let tempColor = '#fff';
                 if (useColors) {
                     const isF = unit === '°F';
@@ -369,7 +368,6 @@ export default class WeatherExtension extends Extension {
                 if (pageItems[i].isDay) {
                     const uv = pageItems[i].uv;
                     let uvLabel = '', uvColor = '#fff';
-                    const useUvColors = this._settings?.get_boolean('use-colored-uv') !== false;
                     if (useUvColors) {
                         if (uv <= 2) { uvLabel = 'Low'; uvColor = '#8bc34a'; }
                         else if (uv <= 5) { uvLabel = 'Mod'; uvColor = '#ffc107'; }
@@ -590,9 +588,7 @@ export default class WeatherExtension extends Extension {
     }
 
     _getLocation() {
-        const params = {};
-        const paramsEncoded = Soup.form_encode_hash(params);
-        const msg = Soup.Message.new_from_encoded_form('GET', GEO_API, paramsEncoded);
+        const msg = Soup.Message.new('GET', GEO_API);
         msg.request_headers.append('Accept', 'application/json');
 
         return new Promise((resolve, reject) => {
@@ -624,9 +620,9 @@ export default class WeatherExtension extends Extension {
         const params = {
             latitude: lat.toString(),
             longitude: lon.toString(),
-            current: 'temperature_2m,weather_code,is_day,apparent_temperature',
-            hourly: 'temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,uv_index,precipitation_probability',
-            daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+            current: 'temperature_2m,weather_code,is_day',
+            hourly: 'temperature_2m,weather_code,is_day,uv_index,precipitation_probability',
+            daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
             timezone: 'auto',
         };
         if (isFahrenheit)
@@ -671,7 +667,6 @@ export default class WeatherExtension extends Extension {
                                     label,
                                     temp: hTemp,
                                     icon: this._iconName(hCode, hIsDay),
-                                    iconCode: hCode,
                                     isDay: hIsDay,
                                     day: dayKey,
                                     uv: hUv,
@@ -748,6 +743,7 @@ export default class WeatherExtension extends Extension {
 
         const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
             ? '°F' : '°C';
+        const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
 
         if (this._location) {
             const locItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
@@ -818,7 +814,6 @@ export default class WeatherExtension extends Extension {
                     iconBox.add_child(dayIcon2);
                 }
 
-                const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
                 const tempColor = (t, isF) => {
                     if (!useColors) return '#fff';
                     if (isF) {
@@ -880,10 +875,11 @@ export default class WeatherExtension extends Extension {
                 row.connect('button-press-event', () => {
                     const now = new Date();
                     const todayName = now.toLocaleString('en-US', {weekday: 'long'});
+                    const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    const shorts = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                    const idx = shorts.indexOf(day.label);
                     const targetDay = day.label === 'Today' ? todayName :
-                        day.label === 'Sat' ? 'Saturday' : day.label === 'Sun' ? 'Sunday' :
-                        day.label === 'Mon' ? 'Monday' : day.label === 'Tue' ? 'Tuesday' :
-                        day.label === 'Wed' ? 'Wednesday' : day.label === 'Thu' ? 'Thursday' : 'Friday';
+                        idx >= 0 ? weekdays[idx] : todayName;
                     this._activeDay = targetDay;
                     this._forecastPage = 0;
                     this._viewMode = 'hourly';
