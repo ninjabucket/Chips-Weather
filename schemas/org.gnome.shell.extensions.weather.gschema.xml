@@ -22,5 +22,15 @@
       <summary>Dynamic UV color</summary>
       <description>Use color-coded UV index labels</description>
     </key>
+    <key name="show-uv-index" type="b">
+      <default>true</default>
+      <summary>Show UV index</summary>
+      <description>Display UV index in hourly forecast rows</description>
+    </key>
+    <key name="show-precipitation" type="b">
+      <default>true</default>
+      <summary>Show precipitation</summary>
+      <description>Display precipitation chance in hourly forecast rows</description>
+    </key>
   </schema>
 </schemalist>

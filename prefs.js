@@ -82,5 +82,28 @@ export default class WeatherPreferences extends ExtensionPreferences {
             settings.set_boolean('use-colored-uv', uvColorRow.active);
         });
         layoutGroup.add(uvColorRow);
+
+        const displayGroup = new Adw.PreferencesGroup({title: 'Display'});
+        page.add(displayGroup);
+
+        const uvShowRow = new Adw.SwitchRow({
+            title: 'Show UV Index',
+            subtitle: 'Display UV index in hourly forecast rows',
+            active: settings.get_boolean('show-uv-index'),
+        });
+        uvShowRow.connect('notify::active', () => {
+            settings.set_boolean('show-uv-index', uvShowRow.active);
+        });
+        displayGroup.add(uvShowRow);
+
+        const precipShowRow = new Adw.SwitchRow({
+            title: 'Show Rain Chance',
+            subtitle: 'Display precipitation probability in hourly forecast rows',
+            active: settings.get_boolean('show-precipitation'),
+        });
+        precipShowRow.connect('notify::active', () => {
+            settings.set_boolean('show-precipitation', precipShowRow.active);
+        });
+        displayGroup.add(precipShowRow);
     }
 }

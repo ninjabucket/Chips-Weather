@@ -324,6 +324,8 @@ export default class WeatherExtension extends Extension {
             const perPage = 8;
             const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
             const useUvColors = this._settings?.get_boolean('use-colored-uv') !== false;
+            const showUv = this._settings?.get_boolean('show-uv-index') !== false;
+            const showPrecip = this._settings?.get_boolean('show-precipitation') !== false;
 
             const maxPage = Math.ceil(forecast.length / perPage) - 1;
             const pageItems = forecast.slice(
@@ -416,10 +418,14 @@ export default class WeatherExtension extends Extension {
                 const s3 = new St.Bin({x_expand: true});
                 row.add_child(tl);
                 row.add_child(s1);
-                row.add_child(detailBox);
-                row.add_child(s2);
-                row.add_child(precipBox);
-                row.add_child(s3);
+                if (showUv) {
+                    row.add_child(detailBox);
+                    row.add_child(s2);
+                }
+                if (showPrecip) {
+                    row.add_child(precipBox);
+                    row.add_child(s3);
+                }
                 row.add_child(rightBox);
                 row.reactive = true;
                 row.track_hover = true;
