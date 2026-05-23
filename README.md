@@ -2,6 +2,8 @@
 
 GNOME Shell extension showing current weather in the panel with an hourly and daily forecast popup.
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 - **Panel indicator** — current temperature with weather icon
