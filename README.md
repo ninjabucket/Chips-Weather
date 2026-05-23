@@ -1,8 +1,6 @@
-# Chips Weather
+# <img src="icon.png" width="48" align="left"> Chips Weather
 
 GNOME Shell extension showing current weather in the panel with an hourly and daily forecast popup.
-
-<img src="screenshot.png" alt="Screenshot" align="left" width="400">
 
 ## Features
 
@@ -15,6 +13,8 @@ GNOME Shell extension showing current weather in the panel with an hourly and da
 - **Auto-location** — IP-based geolocation via ipapi.co
 - **Open-Meteo** — free weather API, no key required
 - **Global** — US shows `City, ST`, everywhere else shows `City, Country`
+
+![Screenshot](screenshot.png)
 
 ## Compatibility
 
