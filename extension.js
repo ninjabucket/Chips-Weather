@@ -14,6 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+//  Architecture
+//  ------------
+//  Data flow: ipapi.co (geolocate by IP) → open-meteo.com (48h hourly + 7d daily) → panel + popup.
+//  GJS module system: uses gi:// imports (Soup 3.0 required) and resource:/// for GNOME Shell APIs.
+//  No npm, no fetch(), no Node.js — Soup.Session with Promise wrappers for async HTTP.
+
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Soup from 'gi://Soup?version=3.0';
@@ -26,6 +33,8 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
 const GEO_API = 'https://ipapi.co/json/';
 
+// WMO weather codes → GNOME symbolic icon names.
+// Full code table: https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-CODE/WMO4677.HTM
 const DAY_ICON_MAP = {
     0: 'weather-clear-symbolic',
     1: 'weather-few-clouds-symbolic',
@@ -74,12 +83,15 @@ const STATE_ABBR = {
     'district of columbia': 'DC',
 };
 
+// Night icons only exist for clear/few-clouds. All other codes fall through to DAY_ICON_MAP.
 const NIGHT_ICON_MAP = {
     0: 'weather-clear-night-symbolic',
     1: 'weather-few-clouds-night-symbolic',
     2: 'weather-few-clouds-night-symbolic',
 };
 
+// Extension lifecycle: enable() creates everything, disable() must destroy/disconnect all.
+// GNOME Shell will hard-crash on reload if any references leak past disable().
 export default class WeatherExtension extends Extension {
     enable() {
         this._http = null;
@@ -678,6 +690,9 @@ export default class WeatherExtension extends Extension {
 
                             const daily = json?.daily;
                             if (daily && daily.time && daily.temperature_2m_max) {
+                                // Daily icons use the most common hourly weather code (6am-11pm)
+                                // rather than Open-Meteo's "most severe" daily code. This avoids
+                                // showing a rain icon when only 2 hours of a day have drizzle.
                                 const dayCodes = {};
                                 if (hourly && hourly.time && hourly.weather_code) {
                                     for (let h = 0; h < hourly.time.length; h++) {
