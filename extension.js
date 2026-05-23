@@ -118,6 +118,18 @@ export default class WeatherExtension extends Extension {
             this._settings.connect('changed::temperature-position', () => {
                 this._applyPosition();
             }),
+            this._settings.connect('changed::use-colored-temps', () => {
+                this._rebuildMenu();
+            }),
+            this._settings.connect('changed::use-colored-uv', () => {
+                this._rebuildMenu();
+            }),
+            this._settings.connect('changed::show-uv-index', () => {
+                this._rebuildMenu();
+            }),
+            this._settings.connect('changed::show-precipitation', () => {
+                this._rebuildMenu();
+            }),
         ];
 
         this._indicator = new PanelMenu.Button(0.5, this.metadata.name, false);
