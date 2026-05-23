@@ -22,7 +22,7 @@ GNOME Shell 45, 46, 47, 48, 49, 50
 
 ### From extensions.gnome.org
 
-[![Get it on GNOME Extensions](https://raw.githubusercontent.com/mjakeman/extension-manager/main/data/icons/hicolor/scalable/apps/org.gnome.Extensions.svg)](https://extensions.gnome.org)
+Install from [extensions.gnome.org](https://extensions.gnome.org/extension/10001/chips-weather/)
 
 ### Manual
 
