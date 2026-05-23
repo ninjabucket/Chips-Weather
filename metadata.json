@@ -1,0 +1,15 @@
+{
+  "description": "Panel indicator showing current temperature and weather icon. Popup menu displays an 8-hour hourly forecast with temperature, UV index, precipitation probability, and color-coded temps. Daily view with high/low temperatures and dual weather icons for mixed conditions. Automatic location detection via IP. Supports Celsius/Fahrenheit.",
+  "name": "Chips Weather",
+  "settings-schema": "org.gnome.shell.extensions.weather",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "url": "https://github.com/ninjabucket/Chips-Weather",
+  "uuid": "weather@chip"
+}

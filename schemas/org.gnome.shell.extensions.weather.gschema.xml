@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.weather"
+          path="/org/gnome/shell/extensions/weather/">
+    <key name="temperature-unit" type="s">
+      <default>"celsius"</default>
+      <summary>Temperature unit</summary>
+      <description>Unit for temperature display: celsius or fahrenheit</description>
+    </key>
+    <key name="temperature-position" type="s">
+      <default>"right"</default>
+      <summary>Temperature position</summary>
+      <description>Position of temperature relative to icon: left or right</description>
+    </key>
+    <key name="use-colored-temps" type="b">
+      <default>true</default>
+      <summary>Dynamic temperature color</summary>
+      <description>Use blue-to-red gradient for temperature values</description>
+    </key>
+    <key name="use-colored-uv" type="b">
+      <default>true</default>
+      <summary>Dynamic UV color</summary>
+      <description>Use color-coded UV index labels</description>
+    </key>
+  </schema>
+</schemalist>
