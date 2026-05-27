@@ -23,7 +23,7 @@
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
-import Soup from 'gi://Soup?version=3.0';
+import Soup from 'gi://Soup';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -111,29 +111,18 @@ export default class WeatherExtension extends Extension {
         this._activeDay = null;
 
         this._settings = this.getSettings();
-        this._settingsHandlerIds = [
-            this._settings.connect('changed::temperature-unit', () => {
-                this._updateWeather();
-            }),
-            this._settings.connect('changed::temperature-position', () => {
-                this._applyPosition();
-            }),
-            this._settings.connect('changed::use-colored-temps', () => {
-                this._rebuildMenu();
-            }),
-            this._settings.connect('changed::use-colored-uv', () => {
-                this._rebuildMenu();
-            }),
-            this._settings.connect('changed::show-uv-index', () => {
-                this._rebuildMenu();
-            }),
-            this._settings.connect('changed::show-precipitation', () => {
-                this._rebuildMenu();
-            }),
-        ];
+        this._settings.connectObject(
+            'changed::temperature-unit', () => { this._updateWeather(); },
+            'changed::temperature-position', () => { this._applyPosition(); },
+            'changed::use-colored-temps', () => { this._rebuildMenu(); },
+            'changed::use-colored-uv', () => { this._rebuildMenu(); },
+            'changed::show-uv-index', () => { this._rebuildMenu(); },
+            'changed::show-precipitation', () => { this._rebuildMenu(); },
+            this,
+        );
 
         this._indicator = new PanelMenu.Button(0.5, this.metadata.name, false);
-        this._menuOpenHandler = this._indicator.menu.connect('open-state-changed', (menu, open) => {
+        this._indicator.menu.connectObject('open-state-changed', (menu, open) => {
             if (open && this._bgContainer) {
                 this._bgContainer.opacity = 0;
                 let step = 0;
@@ -147,7 +136,7 @@ export default class WeatherExtension extends Extension {
                     return GLib.SOURCE_REMOVE;
                 });
             }
-        });
+        }, this);
 
         this._box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({
@@ -1009,15 +998,9 @@ export default class WeatherExtension extends Extension {
             GLib.Source.remove(this._rebuildDelayId);
             this._rebuildDelayId = 0;
         }
-        if (this._settingsHandlerIds) {
-            for (const id of this._settingsHandlerIds)
-                this._settings?.disconnect(id);
-            this._settingsHandlerIds = null;
-        }
-        if (this._menuOpenHandler && this._indicator?.menu) {
-            this._indicator.menu.disconnect(this._menuOpenHandler);
-            this._menuOpenHandler = null;
-        }
+        this._settings?.disconnectObject(this);
+        if (this._indicator?.menu)
+            this._indicator.menu.disconnectObject(this);
         this._http?.abort();
         this._http = null;
         this._settings = null;
