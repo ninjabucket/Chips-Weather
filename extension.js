@@ -420,23 +420,17 @@ export default class WeatherExtension extends Extension {
                 precipBox.add_child(precipLabel);
                 if (showPrecip)
                     precipBox.visible = pageItems[i].precip > 0;
-                const s1 = new St.Bin({x_expand: true});
-                const s2 = new St.Bin({x_expand: true});
-                const s3 = new St.Bin({x_expand: true});
                 row.add_child(tl);
-                row.add_child(s1);
-                if (showUv) {
+                if (showUv)
                     row.add_child(detailBox);
-                    row.add_child(s2);
-                }
                 if (showPrecip) {
                     if (pageItems[i].precip <= 0) {
                         precipIcon.visible = false;
                         precipLabel.text = '';
                     }
                     row.add_child(precipBox);
-                    row.add_child(s3);
                 }
+                row.add_child(new St.Bin({x_expand: true}));
                 row.add_child(rightBox);
                 row.reactive = true;
                 row.track_hover = true;
