@@ -822,14 +822,13 @@ export default class WeatherExtension extends Extension {
                 });
 
                 const iconBin = new St.Bin({style: 'width: 46px;', x_align: Clutter.ActorAlign.CENTER});
-                const dayIcon = new St.Icon({
-                    icon_name: this._iconName(day.code, true),
-                    style: 'icon-size: 20px; ',
-                    y_align: Clutter.ActorAlign.CENTER,
-                });
-                iconBin.child = dayIcon;
                 if (day.code2) {
                     const dualIconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
+                    const dayIcon = new St.Icon({
+                        icon_name: this._iconName(day.code, true),
+                        style: 'icon-size: 20px;',
+                        y_align: Clutter.ActorAlign.CENTER,
+                    });
                     const slash = new St.Label({
                         text: '/',
                         style: 'font-size: 11px; color: #555;',
@@ -843,6 +842,13 @@ export default class WeatherExtension extends Extension {
                     dualIconBox.add_child(slash);
                     dualIconBox.add_child(dayIcon2);
                     iconBin.child = dualIconBox;
+                } else {
+                    const dayIcon = new St.Icon({
+                        icon_name: this._iconName(day.code, true),
+                        style: 'icon-size: 20px;',
+                        y_align: Clutter.ActorAlign.CENTER,
+                    });
+                    iconBin.child = dayIcon;
                 }
 
                 const tempColor = (t, isF) => {
@@ -865,7 +871,7 @@ export default class WeatherExtension extends Extension {
                     return '#ef5350';
                 };
                 const isF = unit === '°F';
-                const hiLoBox = new St.BoxLayout({x_align: Clutter.ActorAlign.END, style: 'width: 90px;'});
+                const hiLoBox = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.END});
                 const hiLabel = new St.Label({
                     text: `H:${day.high}°`,
                     style: `font-size: 11px; font-weight: bold; color: ${tempColor(day.high, isF)};`,
@@ -894,7 +900,6 @@ export default class WeatherExtension extends Extension {
                 row.add_child(dayLabel);
                 row.add_child(iconBin);
                 row.add_child(precipBox);
-                row.add_child(new St.Bin({x_expand: true}));
                 row.add_child(hiLoBox);
                 row.reactive = true;
                 row.track_hover = true;
