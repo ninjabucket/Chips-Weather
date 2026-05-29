@@ -109,6 +109,8 @@ export default class WeatherExtension extends Extension {
         this._viewMode = 'hourly';
         this._allDaily = [];
         this._activeDay = null;
+        this._lastCode = 0;
+        this._lastIsDay = true;
 
         this._settings = this.getSettings();
         this._settings.connectObject(
@@ -118,7 +120,7 @@ export default class WeatherExtension extends Extension {
             'changed::use-colored-uv', () => { this._rebuildMenu(); },
             'changed::show-uv-index', () => { this._rebuildMenu(); },
             'changed::show-precipitation', () => { this._rebuildMenu(); },
-            'changed::use-symbolic-icons', () => { this._updateWeather(); },
+            'changed::use-symbolic-icons', () => { this._refreshIcons(); },
             this,
         );
 
@@ -161,6 +163,12 @@ export default class WeatherExtension extends Extension {
             this._updateWeather();
             return GLib.SOURCE_CONTINUE;
         });
+    }
+
+    _refreshIcons() {
+        if (this._label)
+            this._icon.icon_name = this._iconName(this._lastCode, this._lastIsDay);
+        this._rebuildMenu();
     }
 
     _iconName(code, isDay) {
@@ -676,6 +684,8 @@ export default class WeatherExtension extends Extension {
                         if (hourly && hourly.time && hourly.temperature_2m && currentHour < hourly.temperature_2m.length) {
                             this._label.text = `${Math.round(hourly.temperature_2m[currentHour])}${unit}`;
                             this._icon.icon_name = this._iconName(hourly.weather_code[currentHour], hourly.is_day[currentHour] === 1);
+                            this._lastCode = hourly.weather_code[currentHour];
+                            this._lastIsDay = hourly.is_day[currentHour] === 1;
                             this._pulseIcon();
 
                             const items = [];
@@ -758,6 +768,8 @@ export default class WeatherExtension extends Extension {
                         } else if (current) {
                             this._label.text = `${Math.round(current.temperature_2m)}${unit}`;
                             this._icon.icon_name = this._iconName(current.weather_code, current.is_day === 1);
+                            this._lastCode = current.weather_code;
+                            this._lastIsDay = current.is_day === 1;
                             this._pulseIcon();
                         }
                         resolve();
