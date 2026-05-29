@@ -407,7 +407,7 @@ export default class WeatherExtension extends Extension {
                     });
                     detailBox.add_child(moonIcon);
                 }
-                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
+                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px; min-width: 40px;'});
                 const precipIcon = new St.Icon({
                     icon_name: 'weather-showers-symbolic',
                     style_class: 'weather-precip-icon',
@@ -430,7 +430,10 @@ export default class WeatherExtension extends Extension {
                     row.add_child(s2);
                 }
                 if (showPrecip) {
-                    precipBox.visible = pageItems[i].precip > 0;
+                    if (pageItems[i].precip <= 0) {
+                        precipIcon.visible = false;
+                        precipLabel.text = '';
+                    }
                     row.add_child(precipBox);
                     row.add_child(s3);
                 }
