@@ -687,7 +687,6 @@ export default class WeatherExtension extends Extension {
                                 items.push({
                                     label,
                                     temp: hTemp,
-                                    icon: this._iconName(hCode, hIsDay),
                                     iconCode: hCode,
                                     isDay: hIsDay,
                                     day: dayKey,
@@ -775,7 +774,7 @@ export default class WeatherExtension extends Extension {
 
             if (this._allDaily.length > 0) {
                 const todayIcon = new St.Icon({
-                    icon_name: this._allDaily[0].icon,
+                    icon_name: this._iconName(this._allDaily[0].code, true),
                     style: 'icon-size: 32px; color: #ccc;',
                 });
                 const gap = new St.Bin({style: 'width: 12px;'});
