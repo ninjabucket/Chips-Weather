@@ -275,7 +275,7 @@ export default class WeatherExtension extends Extension {
                 const headerIconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
                 const todayIcon = new St.Icon({
                     icon_name: this._iconName(headerDay.code, true),
-                    style: 'icon-size: 32px; color: #ccc;',
+                    style: 'icon-size: 32px; ',
                 });
                 headerIconBox.add_child(todayIcon);
                 if (headerDay.code2) {
@@ -348,7 +348,7 @@ export default class WeatherExtension extends Extension {
                     x_align: Clutter.ActorAlign.START,
                 });
                 const ic = new St.Icon({
-                    icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: 'color: #ccc;',
+                    icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: '',
                 });
                 const t = pageItems[i].temp;
                 let tempColor = '#fff';
@@ -392,7 +392,7 @@ export default class WeatherExtension extends Extension {
                     }
                     const uvText = new St.Label({
                         text: useUvColors ? `UV ${uv} ${uvLabel}` : `UV ${uv}`,
-                        style: `font-size: 11px; font-weight: bold; min-width: ${useUvColors ? '52' : '28'}px; color: ${uvColor};`,
+                        style: `font-size: 10px; font-weight: bold; min-width: ${useUvColors ? '52' : '28'}px; color: ${uvColor};`,
                         x_align: Clutter.ActorAlign.CENTER,
                     });
                     detailBox.add_child(uvText);
@@ -775,7 +775,7 @@ export default class WeatherExtension extends Extension {
             if (this._allDaily.length > 0) {
                 const todayIcon = new St.Icon({
                     icon_name: this._iconName(this._allDaily[0].code, true),
-                    style: 'icon-size: 32px; color: #ccc;',
+                    style: 'icon-size: 32px; ',
                 });
                 const gap = new St.Bin({style: 'width: 12px;'});
                 headerRow.add_child(todayIcon);
@@ -820,7 +820,7 @@ export default class WeatherExtension extends Extension {
                 const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
                 const dayIcon = new St.Icon({
                     icon_name: this._iconName(day.code, true),
-                    style: 'icon-size: 20px; color: #ccc;',
+                    style: 'icon-size: 20px; ',
                 });
                 iconBox.add_child(dayIcon);
                 if (day.code2) {
