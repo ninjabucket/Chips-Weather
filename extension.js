@@ -382,7 +382,7 @@ export default class WeatherExtension extends Extension {
                 const rightBox = new St.BoxLayout({style: 'spacing: 4px;'});
                 rightBox.add_child(ic);
                 rightBox.add_child(tp);
-                const detailBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+                const detailBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
                 if (pageItems[i].isDay) {
                     const uv = pageItems[i].uv;
                     let uvLabel = '', uvColor = '#fff';
@@ -397,6 +397,7 @@ export default class WeatherExtension extends Extension {
                         text: useUvColors ? `UV ${uv} ${uvLabel}` : `UV ${uv}`,
                         style: `font-size: 10px; font-weight: bold; min-width: ${useUvColors ? '52' : '28'}px; color: ${uvColor};`,
                         x_align: Clutter.ActorAlign.CENTER,
+                        y_align: Clutter.ActorAlign.CENTER,
                     });
                     detailBox.add_child(uvText);
                 } else {
@@ -406,7 +407,7 @@ export default class WeatherExtension extends Extension {
                     });
                     detailBox.add_child(moonIcon);
                 }
-                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
+                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
                 const precipIcon = new St.Icon({
                     icon_name: 'weather-showers-symbolic',
                     style_class: 'weather-precip-icon',
@@ -876,7 +877,7 @@ export default class WeatherExtension extends Extension {
                 hiLoBox.add_child(hiLabel);
                 hiLoBox.add_child(loLabel);
 
-                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
                 const precipIcon = new St.Icon({
                     icon_name: 'weather-showers-symbolic',
                     style_class: 'weather-precip-icon',
