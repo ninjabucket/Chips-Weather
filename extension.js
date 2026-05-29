@@ -382,7 +382,7 @@ export default class WeatherExtension extends Extension {
                 const rightBox = new St.BoxLayout({style: 'spacing: 4px;'});
                 rightBox.add_child(ic);
                 rightBox.add_child(tp);
-                const detailBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'min-width: 60px; width: 60px;'});
+                const detailContainer = new St.Bin({style: 'width: 60px;', x_align: Clutter.ActorAlign.CENTER});
                 if (pageItems[i].isDay) {
                     const uv = pageItems[i].uv;
                     let uvLabel = '', uvColor = '#fff';
@@ -399,14 +399,14 @@ export default class WeatherExtension extends Extension {
                         x_align: Clutter.ActorAlign.CENTER,
                         y_align: Clutter.ActorAlign.CENTER,
                     });
-                    detailBox.add_child(uvText);
+                    detailContainer.child = uvText;
                 } else {
                     const moonIcon = new St.Icon({
                         icon_name: 'weather-clear-night-symbolic',
                         style_class: 'weather-precip-icon',
                         x_align: Clutter.ActorAlign.CENTER,
                     });
-                    detailBox.add_child(moonIcon);
+                    detailContainer.child = moonIcon;
                 }
                 const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px; min-width: 44px; width: 44px;'});
                 const precipIcon = new St.Icon({
@@ -423,7 +423,7 @@ export default class WeatherExtension extends Extension {
                     precipBox.visible = pageItems[i].precip > 0;
                 row.add_child(tl);
                 if (showUv)
-                    row.add_child(detailBox);
+                    row.add_child(detailContainer);
                 if (showPrecip) {
                     if (pageItems[i].precip <= 0) {
                         precipIcon.visible = false;
@@ -876,7 +876,7 @@ export default class WeatherExtension extends Extension {
                 hiLoBox.add_child(hiLabel);
                 hiLoBox.add_child(loLabel);
 
-                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
+                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px; min-width: 44px; width: 44px;'});
                 const precipIcon = new St.Icon({
                     icon_name: 'weather-showers-symbolic',
                     style_class: 'weather-precip-icon',
