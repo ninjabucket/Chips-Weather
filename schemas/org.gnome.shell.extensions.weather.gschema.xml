@@ -32,10 +32,5 @@
       <summary>Show precipitation</summary>
       <description>Display precipitation chance in hourly forecast rows</description>
     </key>
-    <key name="use-symbolic-icons" type="b">
-      <default>true</default>
-      <summary>Use symbolic icons</summary>
-      <description>Use monochrome symbolic icons (GNOME default). Disable for full-color weather icons.</description>
-    </key>
   </schema>
 </schemalist>
