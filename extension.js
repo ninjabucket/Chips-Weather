@@ -346,6 +346,7 @@ export default class WeatherExtension extends Extension {
                 const tl = new St.Label({
                     text: pageItems[i].label, style: 'font-size: 12px; font-weight: bold; min-width: 40px;',
                     x_align: Clutter.ActorAlign.START,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 const ic = new St.Icon({
                     icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: 'color: rgba(255,255,255,0.85);',
@@ -817,12 +818,14 @@ export default class WeatherExtension extends Extension {
                     text: day.label,
                     style: 'font-size: 12px; font-weight: bold; min-width: 40px;',
                     x_align: Clutter.ActorAlign.START,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
 
                 const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
                 const dayIcon = new St.Icon({
                     icon_name: this._iconName(day.code, true),
                     style: 'icon-size: 20px; ',
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 iconBox.add_child(dayIcon);
                 if (day.code2) {
@@ -863,10 +866,12 @@ export default class WeatherExtension extends Extension {
                 const hiLabel = new St.Label({
                     text: `H:${day.high}°`,
                     style: `font-size: 11px; font-weight: bold; color: ${tempColor(day.high, isF)};`,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 const loLabel = new St.Label({
                     text: ` L:${day.low}°`,
                     style: `font-size: 11px; font-weight: bold; color: ${tempColor(day.low, isF)};`,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 hiLoBox.add_child(hiLabel);
                 hiLoBox.add_child(loLabel);
