@@ -105,5 +105,15 @@ export default class WeatherPreferences extends ExtensionPreferences {
             settings.set_boolean('show-precipitation', precipShowRow.active);
         });
         displayGroup.add(precipShowRow);
+
+        const iconStyleRow = new Adw.SwitchRow({
+            title: 'Use Symbolic Icons',
+            subtitle: 'Monochrome GNOME-style weather icons. Off for full-color icons.',
+            active: settings.get_boolean('use-symbolic-icons'),
+        });
+        iconStyleRow.connect('notify::active', () => {
+            settings.set_boolean('use-symbolic-icons', iconStyleRow.active);
+        });
+        displayGroup.add(iconStyleRow);
     }
 }

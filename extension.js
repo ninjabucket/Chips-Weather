@@ -118,6 +118,7 @@ export default class WeatherExtension extends Extension {
             'changed::use-colored-uv', () => { this._rebuildMenu(); },
             'changed::show-uv-index', () => { this._rebuildMenu(); },
             'changed::show-precipitation', () => { this._rebuildMenu(); },
+            'changed::use-symbolic-icons', () => { this._updateWeather(); },
             this,
         );
 
@@ -146,7 +147,7 @@ export default class WeatherExtension extends Extension {
         this._label = new St.Label({
             text: '--°',
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'padding: 0 4px;',
+            style: 'padding: 0 4px; font-weight: bold; font-size: 11px;',
         });
         this._applyPosition();
         this._indicator.add_child(this._box);
@@ -163,9 +164,14 @@ export default class WeatherExtension extends Extension {
     }
 
     _iconName(code, isDay) {
+        let name;
         if (!isDay && NIGHT_ICON_MAP[code] !== undefined)
-            return NIGHT_ICON_MAP[code];
-        return DAY_ICON_MAP[code] || 'weather-clear-symbolic';
+            name = NIGHT_ICON_MAP[code];
+        else
+            name = DAY_ICON_MAP[code] || 'weather-clear-symbolic';
+        if (this._settings?.get_boolean('use-symbolic-icons') === false)
+            name = name.replace('-symbolic', '');
+        return name;
     }
 
     _pulseIcon() {
@@ -403,7 +409,7 @@ export default class WeatherExtension extends Extension {
                     });
                     detailBox.add_child(moonIcon);
                 }
-                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+                const precipBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
                 const precipIcon = new St.Icon({
                     icon_name: 'weather-showers-symbolic',
                     style_class: 'weather-precip-icon',
@@ -414,6 +420,8 @@ export default class WeatherExtension extends Extension {
                 });
                 precipBox.add_child(precipIcon);
                 precipBox.add_child(precipLabel);
+                if (pageItems[i].precip <= 0)
+                    precipBox.visible = false;
                 const s1 = new St.Bin({x_expand: true});
                 const s2 = new St.Bin({x_expand: true});
                 const s3 = new St.Bin({x_expand: true});
@@ -423,7 +431,7 @@ export default class WeatherExtension extends Extension {
                     row.add_child(detailBox);
                     row.add_child(s2);
                 }
-                if (showPrecip) {
+                if (showPrecip && pageItems[i].precip > 0) {
                     row.add_child(precipBox);
                     row.add_child(s3);
                 }
