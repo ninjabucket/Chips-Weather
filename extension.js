@@ -348,7 +348,8 @@ export default class WeatherExtension extends Extension {
                     x_align: Clutter.ActorAlign.START,
                 });
                 const ic = new St.Icon({
-                    icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: '',
+                    icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: 'color: rgba(255,255,255,0.85);',
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 const t = pageItems[i].temp;
                 let tempColor = '#fff';
@@ -375,6 +376,7 @@ export default class WeatherExtension extends Extension {
                 const tp = new St.Label({
                     text: `${t}${unit}`, style: `font-size: 12px; font-weight: bold; color: ${tempColor};`,
                     x_align: Clutter.ActorAlign.END,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
                 const rightBox = new St.BoxLayout({style: 'spacing: 4px;'});
                 rightBox.add_child(ic);
