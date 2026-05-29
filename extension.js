@@ -532,7 +532,7 @@ export default class WeatherExtension extends Extension {
             });
             const toggleBtn = new St.Button({
                 child: new St.Icon({
-                    icon_name: 'view-grid-symbolic',
+                    icon_name: 'x-office-calendar-symbolic',
                     style: 'icon-size: 14px;',
                 }),
                 reactive: true,
