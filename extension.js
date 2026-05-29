@@ -288,18 +288,18 @@ export default class WeatherExtension extends Extension {
                 }
                 const headerIconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
                 const todayIcon = new St.Icon({
-                    icon_name: headerDay.icon,
+                    icon_name: this._iconName(headerDay.code, true),
                     style: 'icon-size: 32px; color: #ccc;',
                 });
                 headerIconBox.add_child(todayIcon);
-                if (headerDay.icon2) {
+                if (headerDay.code2) {
                     const slash = new St.Label({
                         text: '/',
                         style: 'font-size: 14px; color: #555; padding: 0 2px;',
                         y_align: Clutter.ActorAlign.CENTER,
                     });
                     const todayIcon2 = new St.Icon({
-                        icon_name: headerDay.icon2,
+                        icon_name: this._iconName(headerDay.code2, true),
                         style: 'icon-size: 24px; color: #888;',
                     });
                     headerIconBox.add_child(slash);
@@ -362,7 +362,7 @@ export default class WeatherExtension extends Extension {
                     x_align: Clutter.ActorAlign.START,
                 });
                 const ic = new St.Icon({
-                    icon_name: pageItems[i].icon, style_class: 'weather-forecast-icon', style: 'color: #ccc;',
+                    icon_name: this._iconName(pageItems[i].iconCode, pageItems[i].isDay), style_class: 'weather-forecast-icon', style: 'color: #ccc;',
                 });
                 const t = pageItems[i].temp;
                 let tempColor = '#fff';
@@ -704,6 +704,7 @@ export default class WeatherExtension extends Extension {
                                     label,
                                     temp: hTemp,
                                     icon: this._iconName(hCode, hIsDay),
+                                    iconCode: hCode,
                                     isDay: hIsDay,
                                     day: dayKey,
                                     uv: hUv,
@@ -756,8 +757,7 @@ export default class WeatherExtension extends Extension {
                                         high: Math.round(daily.temperature_2m_max[d]),
                                         low: Math.round(daily.temperature_2m_min[d]),
                                         code: tc.primary,
-                                        icon: this._iconName(tc.primary, true),
-                                        icon2: tc.showBoth ? this._iconName(tc.secondary, true) : null,
+                                        code2: tc.showBoth ? tc.secondary : null,
                                         precip: daily.precipitation_probability_max?.[d] ?? 0,
                                     });
                                 }
@@ -838,18 +838,18 @@ export default class WeatherExtension extends Extension {
 
                 const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
                 const dayIcon = new St.Icon({
-                    icon_name: day.icon,
+                    icon_name: this._iconName(day.code, true),
                     style: 'icon-size: 20px; color: #ccc;',
                 });
                 iconBox.add_child(dayIcon);
-                if (day.icon2) {
+                if (day.code2) {
                     const slash = new St.Label({
                         text: '/',
                         style: 'font-size: 11px; color: #555; padding: 0 1px;',
                         y_align: Clutter.ActorAlign.CENTER,
                     });
                     const dayIcon2 = new St.Icon({
-                        icon_name: day.icon2,
+                        icon_name: this._iconName(day.code2, true),
                         style: 'icon-size: 16px; color: #888;',
                     });
                     iconBox.add_child(slash);
