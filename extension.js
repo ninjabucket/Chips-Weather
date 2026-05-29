@@ -83,6 +83,37 @@ const STATE_ABBR = {
     'district of columbia': 'DC',
 };
 
+const WEATHER_DESC = {
+    0:  {day: 'Clear sky', night: 'Clear night'},
+    1:  {day: 'Mainly sunny', night: 'Mainly clear'},
+    2:  {day: 'Partly cloudy', night: 'Partly cloudy'},
+    3:  {day: 'Overcast', night: 'Overcast'},
+    45: {day: 'Foggy', night: 'Foggy'},
+    48: {day: 'Rime fog', night: 'Rime fog'},
+    51: {day: 'Light drizzle', night: 'Light drizzle'},
+    53: {day: 'Moderate drizzle', night: 'Moderate drizzle'},
+    55: {day: 'Dense drizzle', night: 'Dense drizzle'},
+    56: {day: 'Freezing drizzle', night: 'Freezing drizzle'},
+    57: {day: 'Heavy freezing drizzle', night: 'Heavy freezing drizzle'},
+    61: {day: 'Light rain', night: 'Light rain'},
+    63: {day: 'Moderate rain', night: 'Moderate rain'},
+    65: {day: 'Heavy rain', night: 'Heavy rain'},
+    66: {day: 'Freezing rain', night: 'Freezing rain'},
+    67: {day: 'Heavy freezing rain', night: 'Heavy freezing rain'},
+    71: {day: 'Light snow', night: 'Light snow'},
+    73: {day: 'Moderate snow', night: 'Moderate snow'},
+    75: {day: 'Heavy snow', night: 'Heavy snow'},
+    77: {day: 'Snow grains', night: 'Snow grains'},
+    80: {day: 'Light showers', night: 'Light showers'},
+    81: {day: 'Moderate showers', night: 'Moderate showers'},
+    82: {day: 'Heavy showers', night: 'Heavy showers'},
+    85: {day: 'Light snow showers', night: 'Light snow showers'},
+    86: {day: 'Heavy snow showers', night: 'Heavy snow showers'},
+    95: {day: 'Thunderstorm', night: 'Thunderstorm'},
+    96: {day: 'Thunderstorm with hail', night: 'Thunderstorm with hail'},
+    99: {day: 'Severe thunderstorm', night: 'Severe thunderstorm'},
+};
+
 // Night icons only exist for clear/few-clouds. All other codes fall through to DAY_ICON_MAP.
 const NIGHT_ICON_MAP = {
     0: 'weather-clear-night-symbolic',
@@ -664,9 +695,9 @@ export default class WeatherExtension extends Extension {
         const params = {
             latitude: lat.toString(),
             longitude: lon.toString(),
-            current: 'temperature_2m,weather_code,is_day',
-            hourly: 'temperature_2m,weather_code,is_day,uv_index,precipitation_probability',
-            daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+            current: 'temperature_2m,weather_code,is_day,apparent_temperature',
+            hourly: 'temperature_2m,weather_code,is_day,uv_index,precipitation_probability,apparent_temperature,relative_humidity_2m,wind_speed_10m',
+            daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset',
             timezone: 'auto',
         };
         if (isFahrenheit)
@@ -703,6 +734,9 @@ export default class WeatherExtension extends Extension {
                                 const hIsDay = hourly.is_day[idx] === 1
                                 const hUv = Math.round(hourly.uv_index[idx] ?? 0)
                                 const hPrecip = hourly.precipitation_probability?.[idx] ?? 0
+                                const hFeels = Math.round(hourly.apparent_temperature?.[idx] ?? hTemp)
+                                const hHumidity = hourly.relative_humidity_2m?.[idx] ?? 0
+                                const hWind = Math.round(hourly.wind_speed_10m?.[idx] ?? 0)
                                 const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), idx);
                                 const label = i === 0 ? 'Now' :
                                     dt.toLocaleString('en-US', {hour: 'numeric', hour12: true});
@@ -716,6 +750,9 @@ export default class WeatherExtension extends Extension {
                                     hour: idx % 24,
                                     uv: hUv,
                                     precip: hPrecip,
+                                    feels: hFeels,
+                                    humidity: hHumidity,
+                                    wind: hWind,
                                 });
                             }
                             this._allForecast = items;
@@ -766,6 +803,8 @@ export default class WeatherExtension extends Extension {
                                         code: tc.primary,
                                         code2: tc.showBoth ? tc.secondary : null,
                                         precip: daily.precipitation_probability_max?.[d] ?? 0,
+                                        sunrise: daily.sunrise?.[d] ?? '',
+                                        sunset: daily.sunset?.[d] ?? '',
                                     });
                                 }
                                 this._allDaily = dailyItems;
@@ -1020,6 +1059,57 @@ export default class WeatherExtension extends Extension {
         }
     }
 
+    _weatherDesc(code, isDay) {
+        const entry = WEATHER_DESC[code];
+        if (!entry) return 'Unknown';
+        return isDay ? entry.day : entry.night;
+    }
+
+    _periodStats(hours) {
+        if (!hours || hours.length === 0)
+            return null;
+        const avgTemp = Math.round(hours.reduce((s, f) => s + f.temp, 0) / hours.length);
+        const avgFeels = Math.round(hours.reduce((s, f) => s + f.feels, 0) / hours.length);
+        const mid = hours[Math.floor(hours.length / 2)];
+        const maxPrecip = Math.max(...hours.map(f => f.precip));
+        const maxUv = Math.max(...hours.map(f => f.uv));
+        const avgHumidity = Math.round(hours.reduce((s, f) => s + f.humidity, 0) / hours.length);
+        const avgWind = Math.round(hours.reduce((s, f) => s + f.wind, 0) / hours.length);
+        const codes = {};
+        for (const h of hours)
+            codes[h.iconCode] = (codes[h.iconCode] || 0) + 1;
+        const dominant = parseInt(Object.entries(codes).sort((a, b) => b[1] - a[1])[0][0]);
+        return {temp: avgTemp, feels: avgFeels, code: dominant, isDay: mid.isDay, precip: maxPrecip, uv: maxUv, humidity: avgHumidity, wind: avgWind};
+    }
+
+    _buildSummary(periods) {
+        const parts = [];
+        const labels = ['morning', 'afternoon', 'evening', 'night'];
+        const seen = new Set();
+        for (let i = 0; i < periods.length; i++) {
+            const p = periods[i];
+            if (!p) continue;
+            const desc = this._weatherDesc(p.code, p.isDay).toLowerCase();
+            if (!seen.has(desc)) {
+                parts.push({label: labels[i], desc});
+                seen.add(desc);
+            }
+        }
+        if (parts.length === 0) return '';
+        if (parts.length === 1) return `${parts[0].desc.charAt(0).toUpperCase()}${parts[0].desc.slice(1)} throughout the day`;
+        const same = parts.every(p => p.desc === parts[0].desc);
+        if (same) return `${parts[0].desc.charAt(0).toUpperCase()}${parts[0].desc.slice(1)} throughout the day`;
+        const allParts = parts.map(p => `${p.desc} in the ${p.label}`);
+        const last = allParts.pop();
+        return `${allParts.join(', ')}, and ${last}`;
+    }
+
+    _formatTime(isoStr) {
+        if (!isoStr) return '';
+        const d = new Date(isoStr);
+        return d.toLocaleString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
+    }
+
     _rebuildSingleDayMenu() {
         const items = this._indicator.menu._getMenuItems();
         for (let i = items.length - 1; i >= 0; i--)
@@ -1027,159 +1117,315 @@ export default class WeatherExtension extends Extension {
 
         const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
             ? '°F' : '°C';
+        const isF = unit === '°F';
+        const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
 
         if (this._allDaily.length === 0)
             return;
 
         const day = this._allDaily[this._dayIndex];
-        const dayForecast = this._allForecast.filter(f => f.day === day.label || (day.label === 'Today' && f.day === new Date().toLocaleString('en-US', {weekday: 'long'})));
+        const todayName = new Date().toLocaleString('en-US', {weekday: 'long'});
+        const dayForecast = this._allForecast.filter(f =>
+            f.day === day.label || (day.label === 'Today' && f.day === todayName));
 
         const morning = dayForecast.filter(f => f.hour >= 6 && f.hour < 12);
-        const night = dayForecast.filter(f => f.hour >= 18 && f.hour < 24);
-        const morningTemp = morning.length > 0 ? Math.round(morning.reduce((s, f) => s + f.temp, 0) / morning.length) : null;
-        const nightTemp = night.length > 0 ? Math.round(night.reduce((s, f) => s + f.temp, 0) / night.length) : null;
-        const morningCode = morning.length > 0 ? morning[Math.floor(morning.length / 2)].iconCode : null;
-        const nightCode = night.length > 0 ? night[Math.floor(night.length / 2)].iconCode : null;
-        const morningPrecip = morning.length > 0 ? Math.max(...morning.map(f => f.precip)) : 0;
-        const nightPrecip = night.length > 0 ? Math.max(...night.map(f => f.precip)) : 0;
+        const afternoon = dayForecast.filter(f => f.hour >= 12 && f.hour < 18);
+        const evening = dayForecast.filter(f => f.hour >= 18 && f.hour < 21);
+        const night = dayForecast.filter(f => f.hour >= 21 || f.hour < 6);
+        const morningS = this._periodStats(morning);
+        const afternoonS = this._periodStats(afternoon);
+        const eveningS = this._periodStats(evening);
+        const nightS = this._periodStats(night);
+        const allPeriods = [morningS, afternoonS, eveningS, nightS];
+
+        const avgFeels = allPeriods.filter(Boolean).length > 0
+            ? Math.round(allPeriods.filter(Boolean).reduce((s, p) => s + p.feels, 0) / allPeriods.filter(Boolean).length)
+            : null;
+        const avgWind = allPeriods.filter(Boolean).length > 0
+            ? Math.round(allPeriods.filter(Boolean).reduce((s, p) => s + p.wind, 0) / allPeriods.filter(Boolean).length)
+            : null;
+        const avgHumidity = allPeriods.filter(Boolean).length > 0
+            ? Math.round(allPeriods.filter(Boolean).reduce((s, p) => s + p.humidity, 0) / allPeriods.filter(Boolean).length)
+            : null;
+        const maxUv = allPeriods.filter(Boolean).length > 0
+            ? Math.max(...allPeriods.filter(Boolean).map(p => p.uv))
+            : 0;
+
+        const summary = this._buildSummary(allPeriods);
+
+        const tempColor = (t) => {
+            if (!useColors) return '#fff';
+            if (isF) {
+                if (t < 32) return '#64b5f6';
+                if (t < 50) return '#42a5f5';
+                if (t < 65) return '#26a69a';
+                if (t < 75) return '#66bb6a';
+                if (t < 85) return '#ffca28';
+                if (t < 95) return '#ffa726';
+                return '#ef5350';
+            }
+            if (t < 0) return '#64b5f6';
+            if (t < 10) return '#42a5f5';
+            if (t < 18) return '#26a69a';
+            if (t < 24) return '#66bb6a';
+            if (t < 30) return '#ffca28';
+            if (t < 35) return '#ffa726';
+            return '#ef5350';
+        };
+
+        const uvColor = (uv) => {
+            if (uv <= 2) return '#8bc34a';
+            if (uv <= 5) return '#ffc107';
+            if (uv <= 7) return '#ff9800';
+            if (uv <= 10) return '#f44336';
+            return '#ce93d8';
+        };
+
+        const uvLabel = (uv) => {
+            if (uv <= 2) return 'Low';
+            if (uv <= 5) return 'Moderate';
+            if (uv <= 7) return 'High';
+            if (uv <= 10) return 'Very High';
+            return 'Extreme';
+        };
+
+        const bgContainer = new St.BoxLayout({
+            style_class: 'weather-bg-box',
+            vertical: true,
+            opacity: 0,
+        });
 
         if (this._location) {
             const locItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-            const locBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER, x_expand: true});
             const locLabel = new St.Label({
                 text: this._location,
-                style: 'font-weight: bold; padding: 0 4px;',
+                style: 'font-size: 10px; color: #888; padding: 0 0 2px 0;',
                 x_align: Clutter.ActorAlign.CENTER,
+                x_expand: true,
             });
-            locBox.add_child(locLabel);
-            locItem.add_child(locBox);
-            this._indicator.menu.addMenuItem(locItem);
+            locItem.add_child(locLabel);
+            bgContainer.add_child(locItem);
         }
 
-        const dayItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const dayRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER});
-        const dayIcon = new St.Icon({
+        const heroItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const heroBox = new St.BoxLayout({
+            vertical: true,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'padding: 2px 0 0 0;',
+        });
+        const heroRow = new St.BoxLayout({
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 8px;',
+        });
+        const heroIcon = new St.Icon({
             icon_name: this._iconName(day.code, true),
             style: 'icon-size: 48px;',
         });
-        const dayLabel = new St.Label({
-            text: day.label,
-            style: 'font-size: 20px; font-weight: bold; padding: 0 8px;',
+        const heroTemp = new St.Label({
+            text: `${day.high}°`,
+            style: `font-size: 36px; font-weight: bold; color: ${tempColor(day.high)};`,
+            y_align: Clutter.ActorAlign.CENTER,
         });
-        dayRow.add_child(dayIcon);
-        dayRow.add_child(dayLabel);
-        dayItem.add_child(dayRow);
-        this._indicator.menu.addMenuItem(dayItem);
+        heroRow.add_child(heroIcon);
+        heroRow.add_child(heroTemp);
+        heroBox.add_child(heroRow);
+
+        const descLabel = new St.Label({
+            text: this._weatherDesc(day.code, true),
+            style: 'font-size: 13px; color: #ccc; padding: 1px 0 0 0;',
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        heroBox.add_child(descLabel);
+
+        if (summary) {
+            const summaryLabel = new St.Label({
+                text: summary,
+                style: 'font-size: 10px; color: #999; padding: 2px 8px 0 8px;',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            heroBox.add_child(summaryLabel);
+        }
+        heroItem.add_child(heroBox);
+        bgContainer.add_child(heroItem);
 
         const hiLoItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const hiLoRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 16px; padding: 4px 0;'});
-        const hiLabel = new St.Label({
-            text: `H: ${day.high}°${unit}`,
-            style: 'font-size: 22px; font-weight: bold; color: #ef5350;',
+        const hiLoRow = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 24px; padding: 0 0 2px 0;',
         });
-        const loLabel = new St.Label({
-            text: `L: ${day.low}°${unit}`,
-            style: 'font-size: 22px; font-weight: bold; color: #64b5f6;',
-        });
-        hiLoRow.add_child(hiLabel);
-        hiLoRow.add_child(loLabel);
+        const hiCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
+        hiCol.add_child(new St.Label({text: 'H', style: 'font-size: 9px; color: #ef5350;'}));
+        hiCol.add_child(new St.Label({text: `${day.high}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(day.high)};`}));
+        const loCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
+        loCol.add_child(new St.Label({text: 'L', style: 'font-size: 9px; color: #64b5f6;'}));
+        loCol.add_child(new St.Label({text: `${day.low}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(day.low)};`}));
+        if (avgFeels !== null) {
+            const feelsCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
+            feelsCol.add_child(new St.Label({text: 'Feels', style: 'font-size: 9px; color: #999;'}));
+            feelsCol.add_child(new St.Label({text: `${avgFeels}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(avgFeels)};`}));
+            hiLoRow.add_child(hiCol);
+            hiLoRow.add_child(loCol);
+            hiLoRow.add_child(feelsCol);
+        } else {
+            hiLoRow.add_child(hiCol);
+            hiLoRow.add_child(loCol);
+        }
         hiLoItem.add_child(hiLoRow);
-        this._indicator.menu.addMenuItem(hiLoItem);
+        bgContainer.add_child(hiLoItem);
 
-        if (morningTemp !== null || nightTemp !== null) {
-            const detailsItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-            const detailsBox = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 24px; padding: 2px 0;'});
+        const detailItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const detailGrid = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 16px; padding: 2px 0;',
+        });
+        const makeDetail = (icon, label, value, valueStyle) => {
+            const box = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 1px;'});
+            box.add_child(new St.Icon({icon_name: icon, style: 'icon-size: 12px; color: #888;'}));
+            box.add_child(new St.Label({text: value, style: valueStyle || 'font-size: 11px; font-weight: bold; color: #ddd;', x_align: Clutter.ActorAlign.CENTER}));
+            box.add_child(new St.Label({text: label, style: 'font-size: 9px; color: #777;', x_align: Clutter.ActorAlign.CENTER}));
+            return box;
+        };
+        if (day.precip > 0)
+            detailGrid.add_child(makeDetail('weather-showers-symbolic', 'Precip', `${day.precip}%`, 'font-size: 11px; font-weight: bold; color: #64b5f6;'));
+        if (maxUv > 0)
+            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'UV', `${maxUv} ${uvLabel(maxUv)}`, `font-size: 11px; font-weight: bold; color: ${uvColor(maxUv)};`));
+        if (avgWind !== null)
+            detailGrid.add_child(makeDetail('weather-windy-symbolic', 'Wind', `${avgWind} km/h`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
+        if (avgHumidity !== null)
+            detailGrid.add_child(makeDetail('weather-fog-symbolic', 'Humidity', `${avgHumidity}%`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
+        if (day.sunrise)
+            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'Sunrise', this._formatTime(day.sunrise), 'font-size: 11px; font-weight: bold; color: #ffca28;'));
+        if (day.sunset)
+            detailGrid.add_child(makeDetail('weather-clear-night-symbolic', 'Sunset', this._formatTime(day.sunset), 'font-size: 11px; font-weight: bold; color: #ffa726;'));
+        detailItem.add_child(detailGrid);
+        bgContainer.add_child(detailItem);
 
-            if (morningTemp !== null) {
-                const morningBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-                const morningHead = new St.Label({text: 'Morning', style: 'font-size: 9px; color: #aaa;'});
-                const morningRow = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 4px;'});
-                const morningIcon = new St.Icon({
-                    icon_name: this._iconName(morningCode, true),
-                    style: 'icon-size: 20px;',
-                });
-                const morningTempLabel = new St.Label({
-                    text: `${morningTemp}°`,
-                    style: 'font-size: 14px; font-weight: bold;',
-                });
-                morningRow.add_child(morningIcon);
-                morningRow.add_child(morningTempLabel);
-                morningBox.add_child(morningHead);
-                morningBox.add_child(morningRow);
-                detailsBox.add_child(morningBox);
+        bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
+
+        const periodDefs = [
+            {label: 'Morning', time: '6AM–12PM', stats: morningS},
+            {label: 'Afternoon', time: '12–6PM', stats: afternoonS},
+            {label: 'Evening', time: '6–9PM', stats: eveningS},
+            {label: 'Night', time: '9PM–6AM', stats: nightS},
+        ];
+
+        const buildPeriodCard = (def, idx) => {
+            if (!def.stats) return null;
+            const cardItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const card = new St.BoxLayout({
+                x_expand: true,
+                style: `spacing: 6px; padding: 3px 6px;${idx % 2 === 0 ? ' background-color: rgba(255, 255, 255, 0.04);' : ''}`,
+            });
+
+            const periodIcon = new St.Icon({
+                icon_name: this._iconName(def.stats.code, def.stats.isDay),
+                style: 'icon-size: 22px;',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+
+            const midBox = new St.BoxLayout({vertical: true, x_expand: true});
+            const topRow = new St.BoxLayout({style: 'spacing: 6px;'});
+            topRow.add_child(new St.Label({text: def.label, style: 'font-size: 11px; font-weight: bold; color: #ddd;'}));
+            topRow.add_child(new St.Label({text: def.time, style: 'font-size: 10px; color: #666;'}));
+            midBox.add_child(topRow);
+
+            const descText = this._weatherDesc(def.stats.code, def.stats.isDay);
+            const descRow = new St.BoxLayout({style: 'spacing: 6px;'});
+            descRow.add_child(new St.Label({text: descText, style: 'font-size: 11px; color: #aaa;'}));
+            if (def.stats.precip > 0) {
+                descRow.add_child(new St.Label({
+                    text: `• ${def.stats.precip}%`,
+                    style: 'font-size: 10px; color: #64b5f6;',
+                }));
+            }
+            midBox.add_child(descRow);
+
+            const rightBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.END, style: 'min-width: 40px;'});
+            rightBox.add_child(new St.Label({
+                text: `${def.stats.temp}°`,
+                style: `font-size: 16px; font-weight: bold; color: ${tempColor(def.stats.temp)};`,
+                x_align: Clutter.ActorAlign.END,
+            }));
+            if (def.stats.feels !== def.stats.temp) {
+                rightBox.add_child(new St.Label({
+                    text: `Feels ${def.stats.feels}°`,
+                    style: 'font-size: 9px; color: #888;',
+                    x_align: Clutter.ActorAlign.END,
+                }));
             }
 
-            if (nightTemp !== null) {
-                const nightBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-                const nightHead = new St.Label({text: 'Night', style: 'font-size: 9px; color: #aaa;'});
-                const nightRow = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 4px;'});
-                const nightIcon = new St.Icon({
-                    icon_name: this._iconName(nightCode, true),
-                    style: 'icon-size: 20px;',
-                });
-                const nightTempLabel = new St.Label({
-                    text: `${nightTemp}°`,
-                    style: 'font-size: 14px; font-weight: bold;',
-                });
-                nightRow.add_child(nightIcon);
-                nightRow.add_child(nightTempLabel);
-                nightBox.add_child(nightHead);
-                nightBox.add_child(nightRow);
-                detailsBox.add_child(nightBox);
-            }
+            card.add_child(periodIcon);
+            card.add_child(midBox);
+            card.add_child(rightBox);
+            cardItem.add_child(card);
+            return cardItem;
+        };
 
-            detailsItem.add_child(detailsBox);
-            this._indicator.menu.addMenuItem(detailsItem);
+        for (let i = 0; i < periodDefs.length; i++) {
+            const card = buildPeriodCard(periodDefs[i], i);
+            if (card) bgContainer.add_child(card);
         }
 
-        const navItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const navRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 16px; padding: 4px 0;'});
+        bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
 
+        const navItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const navRow = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            style: 'padding: 2px 0;',
+        });
         const prevBtn = new St.Button({
             label: '◀',
             reactive: true,
             can_focus: true,
             track_hover: true,
             style_class: 'weather-nav-btn',
+            x_align: Clutter.ActorAlign.START,
         });
         prevBtn.connect('button-press-event', () => {
             if (this._dayIndex > 0) {
                 this._dayIndex--;
-                this._rebuildMenu();
+                this._fadeToPage();
             }
             return Clutter.EVENT_STOP;
         });
-
-        const pageLabel = new St.Label({
-            text: `${this._dayIndex + 1}/${this._allDaily.length}`,
+        const dayLabel = new St.Label({
+            text: day.label,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'font-size: 11px;',
+            x_align: Clutter.ActorAlign.CENTER,
+            x_expand: true,
+            style: 'font-size: 12px; font-weight: bold; color: #ccc;',
         });
-
         const nextBtn = new St.Button({
             label: '▶',
             reactive: true,
             can_focus: true,
             track_hover: true,
             style_class: 'weather-nav-btn',
+            x_align: Clutter.ActorAlign.END,
         });
         nextBtn.connect('button-press-event', () => {
             if (this._dayIndex < this._allDaily.length - 1) {
                 this._dayIndex++;
-                this._rebuildMenu();
+                this._fadeToPage();
             }
             return Clutter.EVENT_STOP;
         });
-
         navRow.add_child(prevBtn);
-        navRow.add_child(pageLabel);
+        navRow.add_child(dayLabel);
         navRow.add_child(nextBtn);
         navItem.add_child(navRow);
-        this._indicator.menu.addMenuItem(navItem);
+        bgContainer.add_child(navItem);
 
         const toggleItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const toggleRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 12px;'});
-
+        const toggleRow = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 12px; padding: 0 0 2px 0;',
+        });
         const hourlyBtn = new St.Button({
             child: new St.Icon({icon_name: 'preferences-system-time-symbolic', style: 'icon-size: 14px;'}),
             reactive: true,
@@ -1192,7 +1438,6 @@ export default class WeatherExtension extends Extension {
             this._fadeToPage();
             return Clutter.EVENT_STOP;
         });
-
         const dailyBtn = new St.Button({
             child: new St.Icon({icon_name: 'x-office-calendar-symbolic', style: 'icon-size: 14px;'}),
             reactive: true,
@@ -1205,11 +1450,38 @@ export default class WeatherExtension extends Extension {
             this._fadeToPage();
             return Clutter.EVENT_STOP;
         });
-
         toggleRow.add_child(hourlyBtn);
         toggleRow.add_child(dailyBtn);
         toggleItem.add_child(toggleRow);
-        this._indicator.menu.addMenuItem(toggleItem);
+        bgContainer.add_child(toggleItem);
+
+        this._bgContainer = bgContainer;
+        const bgItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        bgItem.add_child(bgContainer);
+        this._indicator.menu.addMenuItem(bgItem);
+
+        if (this._rebuildDelayId > 0) {
+            GLib.Source.remove(this._rebuildDelayId);
+            this._rebuildDelayId = 0;
+        }
+        this._rebuildDelayId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
+            this._rebuildDelayId = 0;
+            let fi = 0;
+            const fiSteps = 6;
+            if (this._rebuildFadeInId > 0) {
+                GLib.Source.remove(this._rebuildFadeInId);
+                this._rebuildFadeInId = 0;
+            }
+            this._rebuildFadeInId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 15, () => {
+                fi++;
+                if (this._bgContainer)
+                    this._bgContainer.opacity = Math.round(255 * (fi / fiSteps));
+                if (fi >= fiSteps)
+                    this._rebuildFadeInId = 0;
+                return fi < fiSteps ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE;
+            });
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     disable() {
