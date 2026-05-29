@@ -1224,7 +1224,7 @@ export default class WeatherExtension extends Extension {
         });
         const heroTemp = new St.Label({
             text: `${day.high}°`,
-            style: `font-size: 36px; font-weight: bold; color: ${tempColor(day.high)};`,
+            style: 'font-size: 36px; font-weight: bold; color: #ddd;',
             y_align: Clutter.ActorAlign.CENTER,
         });
         heroRow.add_child(heroIcon);
@@ -1257,14 +1257,14 @@ export default class WeatherExtension extends Extension {
         });
         const hiCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
         hiCol.add_child(new St.Label({text: 'H', style: 'font-size: 9px; color: #ef5350;'}));
-        hiCol.add_child(new St.Label({text: `${day.high}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(day.high)};`}));
+        hiCol.add_child(new St.Label({text: `${day.high}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
         const loCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
         loCol.add_child(new St.Label({text: 'L', style: 'font-size: 9px; color: #64b5f6;'}));
-        loCol.add_child(new St.Label({text: `${day.low}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(day.low)};`}));
+        loCol.add_child(new St.Label({text: `${day.low}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
         if (avgFeels !== null) {
             const feelsCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
             feelsCol.add_child(new St.Label({text: 'Feels', style: 'font-size: 9px; color: #999;'}));
-            feelsCol.add_child(new St.Label({text: `${avgFeels}°`, style: `font-size: 20px; font-weight: bold; color: ${tempColor(avgFeels)};`}));
+            feelsCol.add_child(new St.Label({text: `${avgFeels}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
             hiLoRow.add_child(hiCol);
             hiLoRow.add_child(loCol);
             hiLoRow.add_child(feelsCol);
@@ -1346,7 +1346,7 @@ export default class WeatherExtension extends Extension {
             const rightBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.END, style: 'min-width: 40px;'});
             rightBox.add_child(new St.Label({
                 text: `${def.stats.temp}°`,
-                style: `font-size: 16px; font-weight: bold; color: ${tempColor(def.stats.temp)};`,
+                style: 'font-size: 16px; font-weight: bold; color: #ddd;',
                 x_align: Clutter.ActorAlign.END,
             }));
             if (def.stats.feels !== def.stats.temp) {
@@ -1388,7 +1388,7 @@ export default class WeatherExtension extends Extension {
         prevBtn.connect('button-press-event', () => {
             if (this._dayIndex > 0) {
                 this._dayIndex--;
-                this._fadeToPage();
+                this._rebuildMenu();
             }
             return Clutter.EVENT_STOP;
         });
@@ -1410,7 +1410,7 @@ export default class WeatherExtension extends Extension {
         nextBtn.connect('button-press-event', () => {
             if (this._dayIndex < this._allDaily.length - 1) {
                 this._dayIndex++;
-                this._fadeToPage();
+                this._rebuildMenu();
             }
             return Clutter.EVENT_STOP;
         });
