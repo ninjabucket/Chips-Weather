@@ -404,6 +404,7 @@ export default class WeatherExtension extends Extension {
                     const moonIcon = new St.Icon({
                         icon_name: 'weather-clear-night-symbolic',
                         style_class: 'weather-precip-icon',
+                        x_align: Clutter.ActorAlign.CENTER,
                     });
                     detailBox.add_child(moonIcon);
                 }
