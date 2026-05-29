@@ -418,8 +418,8 @@ export default class WeatherExtension extends Extension {
                 });
                 precipBox.add_child(precipIcon);
                 precipBox.add_child(precipLabel);
-                if (pageItems[i].precip <= 0)
-                    precipBox.visible = false;
+                if (showPrecip)
+                    precipBox.visible = pageItems[i].precip > 0;
                 const s1 = new St.Bin({x_expand: true});
                 const s2 = new St.Bin({x_expand: true});
                 const s3 = new St.Bin({x_expand: true});
@@ -429,7 +429,8 @@ export default class WeatherExtension extends Extension {
                     row.add_child(detailBox);
                     row.add_child(s2);
                 }
-                if (showPrecip && pageItems[i].precip > 0) {
+                if (showPrecip) {
+                    precipBox.visible = pageItems[i].precip > 0;
                     row.add_child(precipBox);
                     row.add_child(s3);
                 }
