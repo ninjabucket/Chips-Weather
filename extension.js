@@ -816,12 +816,12 @@ export default class WeatherExtension extends Extension {
 
                 const dayLabel = new St.Label({
                     text: day.label,
-                    style: 'font-size: 12px; font-weight: bold; min-width: 42px;',
+                    style: 'font-size: 12px; font-weight: bold; width: 44px;',
                     x_align: Clutter.ActorAlign.START,
                     y_align: Clutter.ActorAlign.CENTER,
                 });
 
-                const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+                const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'width: 46px;'});
                 const dayIcon = new St.Icon({
                     icon_name: this._iconName(day.code, true),
                     style: 'icon-size: 20px; ',
@@ -862,7 +862,7 @@ export default class WeatherExtension extends Extension {
                     return '#ef5350';
                 };
                 const isF = unit === '°F';
-                const hiLoBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+                const hiLoBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'width: 90px;'});
                 const hiLabel = new St.Label({
                     text: `H:${day.high}°`,
                     style: `font-size: 11px; font-weight: bold; color: ${tempColor(day.high, isF)};`,
@@ -888,16 +888,11 @@ export default class WeatherExtension extends Extension {
                 precipBox.add_child(precipIcon);
                 precipBox.add_child(precipLabel);
 
-                const s1 = new St.Bin({x_expand: true});
-                const s2 = new St.Bin({x_expand: true});
-                const s3 = new St.Bin({x_expand: true});
                 row.add_child(dayLabel);
-                row.add_child(s1);
                 row.add_child(iconBox);
-                row.add_child(s2);
                 row.add_child(hiLoBox);
-                row.add_child(s3);
                 row.add_child(precipBox);
+                row.add_child(new St.Bin({x_expand: true}));
                 row.reactive = true;
                 row.track_hover = true;
                 row.connect('enter-event', () => { row.opacity = 180; });
