@@ -862,7 +862,7 @@ export default class WeatherExtension extends Extension {
                     return '#ef5350';
                 };
                 const isF = unit === '°F';
-                const hiLoBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'width: 90px;'});
+                const hiLoBox = new St.BoxLayout({x_align: Clutter.ActorAlign.END, style: 'width: 90px;'});
                 const hiLabel = new St.Label({
                     text: `H:${day.high}°`,
                     style: `font-size: 11px; font-weight: bold; color: ${tempColor(day.high, isF)};`,
