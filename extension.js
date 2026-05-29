@@ -109,6 +109,7 @@ export default class WeatherExtension extends Extension {
         this._viewMode = 'hourly';
         this._allDaily = [];
         this._activeDay = null;
+        this._dayIndex = 0;
 
         this._settings = this.getSettings();
         this._settings.connectObject(
@@ -235,6 +236,10 @@ export default class WeatherExtension extends Extension {
         const perPage = 8;
         if (this._viewMode === 'daily') {
             this._rebuildDailyMenu();
+            return;
+        }
+        if (this._viewMode === 'single-day') {
+            this._rebuildSingleDayMenu();
             return;
         }
         const items = this._indicator.menu._getMenuItems();
@@ -548,6 +553,21 @@ export default class WeatherExtension extends Extension {
             });
             toggleRow.add_child(toggleBtn);
 
+            const singleDayBtn = new St.Button({
+                child: new St.Icon({icon_name: 'view-day-symbolic', style: 'icon-size: 14px;'}),
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                style: 'padding: 2px 8px; border-radius: 4px;',
+            });
+            singleDayBtn.connect('button-press-event', () => {
+                this._dayIndex = 0;
+                this._viewMode = 'single-day';
+                this._fadeToPage();
+                return Clutter.EVENT_STOP;
+            });
+            toggleRow.add_child(singleDayBtn);
+
             const bottomBox = new St.BoxLayout({vertical: true, x_expand: true});
             bottomBox.add_child(navRow);
             bottomBox.add_child(toggleRow);
@@ -693,6 +713,7 @@ export default class WeatherExtension extends Extension {
                                     iconCode: hCode,
                                     isDay: hIsDay,
                                     day: dayKey,
+                                    hour: idx % 24,
                                     uv: hUv,
                                     precip: hPrecip,
                                 });
@@ -948,6 +969,21 @@ export default class WeatherExtension extends Extension {
                 return Clutter.EVENT_STOP;
             });
             toggleRow2.add_child(toggleBtn2);
+
+            const singleDayBtn2 = new St.Button({
+                child: new St.Icon({icon_name: 'view-day-symbolic', style: 'icon-size: 14px;'}),
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                style: 'padding: 2px 8px; border-radius: 4px;',
+            });
+            singleDayBtn2.connect('button-press-event', () => {
+                this._dayIndex = 0;
+                this._viewMode = 'single-day';
+                this._fadeToPage();
+                return Clutter.EVENT_STOP;
+            });
+            toggleRow2.add_child(singleDayBtn2);
             const toggleItem2 = new PopupMenu.PopupBaseMenuItem({reactive: false});
             toggleItem2.add_child(toggleRow2);
             bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
@@ -984,6 +1020,198 @@ export default class WeatherExtension extends Extension {
         }
     }
 
+    _rebuildSingleDayMenu() {
+        const items = this._indicator.menu._getMenuItems();
+        for (let i = items.length - 1; i >= 0; i--)
+            items[i].destroy();
+
+        const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
+            ? '°F' : '°C';
+
+        if (this._allDaily.length === 0)
+            return;
+
+        const day = this._allDaily[this._dayIndex];
+        const dayForecast = this._allForecast.filter(f => f.day === day.label || (day.label === 'Today' && f.day === new Date().toLocaleString('en-US', {weekday: 'long'})));
+
+        const morning = dayForecast.filter(f => f.hour >= 6 && f.hour < 12);
+        const night = dayForecast.filter(f => f.hour >= 18 && f.hour < 24);
+        const morningTemp = morning.length > 0 ? Math.round(morning.reduce((s, f) => s + f.temp, 0) / morning.length) : null;
+        const nightTemp = night.length > 0 ? Math.round(night.reduce((s, f) => s + f.temp, 0) / night.length) : null;
+        const morningCode = morning.length > 0 ? morning[Math.floor(morning.length / 2)].iconCode : null;
+        const nightCode = night.length > 0 ? night[Math.floor(night.length / 2)].iconCode : null;
+        const morningPrecip = morning.length > 0 ? Math.max(...morning.map(f => f.precip)) : 0;
+        const nightPrecip = night.length > 0 ? Math.max(...night.map(f => f.precip)) : 0;
+
+        if (this._location) {
+            const locItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const locBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER, x_expand: true});
+            const locLabel = new St.Label({
+                text: this._location,
+                style: 'font-weight: bold; padding: 0 4px;',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            locBox.add_child(locLabel);
+            locItem.add_child(locBox);
+            this._indicator.menu.addMenuItem(locItem);
+        }
+
+        const dayItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const dayRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER});
+        const dayIcon = new St.Icon({
+            icon_name: this._iconName(day.code, true),
+            style: 'icon-size: 48px;',
+        });
+        const dayLabel = new St.Label({
+            text: day.label,
+            style: 'font-size: 20px; font-weight: bold; padding: 0 8px;',
+        });
+        dayRow.add_child(dayIcon);
+        dayRow.add_child(dayLabel);
+        dayItem.add_child(dayRow);
+        this._indicator.menu.addMenuItem(dayItem);
+
+        const hiLoItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const hiLoRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 16px; padding: 4px 0;'});
+        const hiLabel = new St.Label({
+            text: `H: ${day.high}°${unit}`,
+            style: 'font-size: 22px; font-weight: bold; color: #ef5350;',
+        });
+        const loLabel = new St.Label({
+            text: `L: ${day.low}°${unit}`,
+            style: 'font-size: 22px; font-weight: bold; color: #64b5f6;',
+        });
+        hiLoRow.add_child(hiLabel);
+        hiLoRow.add_child(loLabel);
+        hiLoItem.add_child(hiLoRow);
+        this._indicator.menu.addMenuItem(hiLoItem);
+
+        if (morningTemp !== null || nightTemp !== null) {
+            const detailsItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const detailsBox = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 24px; padding: 2px 0;'});
+
+            if (morningTemp !== null) {
+                const morningBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
+                const morningHead = new St.Label({text: 'Morning', style: 'font-size: 9px; color: #aaa;'});
+                const morningRow = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 4px;'});
+                const morningIcon = new St.Icon({
+                    icon_name: this._iconName(morningCode, true),
+                    style: 'icon-size: 20px;',
+                });
+                const morningTempLabel = new St.Label({
+                    text: `${morningTemp}°`,
+                    style: 'font-size: 14px; font-weight: bold;',
+                });
+                morningRow.add_child(morningIcon);
+                morningRow.add_child(morningTempLabel);
+                morningBox.add_child(morningHead);
+                morningBox.add_child(morningRow);
+                detailsBox.add_child(morningBox);
+            }
+
+            if (nightTemp !== null) {
+                const nightBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
+                const nightHead = new St.Label({text: 'Night', style: 'font-size: 9px; color: #aaa;'});
+                const nightRow = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 4px;'});
+                const nightIcon = new St.Icon({
+                    icon_name: this._iconName(nightCode, true),
+                    style: 'icon-size: 20px;',
+                });
+                const nightTempLabel = new St.Label({
+                    text: `${nightTemp}°`,
+                    style: 'font-size: 14px; font-weight: bold;',
+                });
+                nightRow.add_child(nightIcon);
+                nightRow.add_child(nightTempLabel);
+                nightBox.add_child(nightHead);
+                nightBox.add_child(nightRow);
+                detailsBox.add_child(nightBox);
+            }
+
+            detailsItem.add_child(detailsBox);
+            this._indicator.menu.addMenuItem(detailsItem);
+        }
+
+        const navItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const navRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 16px; padding: 4px 0;'});
+
+        const prevBtn = new St.Button({
+            label: '◀',
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            style_class: 'weather-nav-btn',
+        });
+        prevBtn.connect('button-press-event', () => {
+            if (this._dayIndex > 0) {
+                this._dayIndex--;
+                this._rebuildMenu();
+            }
+            return Clutter.EVENT_STOP;
+        });
+
+        const pageLabel = new St.Label({
+            text: `${this._dayIndex + 1}/${this._allDaily.length}`,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: 'font-size: 11px;',
+        });
+
+        const nextBtn = new St.Button({
+            label: '▶',
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            style_class: 'weather-nav-btn',
+        });
+        nextBtn.connect('button-press-event', () => {
+            if (this._dayIndex < this._allDaily.length - 1) {
+                this._dayIndex++;
+                this._rebuildMenu();
+            }
+            return Clutter.EVENT_STOP;
+        });
+
+        navRow.add_child(prevBtn);
+        navRow.add_child(pageLabel);
+        navRow.add_child(nextBtn);
+        navItem.add_child(navRow);
+        this._indicator.menu.addMenuItem(navItem);
+
+        const toggleItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const toggleRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 12px;'});
+
+        const hourlyBtn = new St.Button({
+            child: new St.Icon({icon_name: 'preferences-system-time-symbolic', style: 'icon-size: 14px;'}),
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            style: 'padding: 2px 8px; border-radius: 4px;',
+        });
+        hourlyBtn.connect('button-press-event', () => {
+            this._viewMode = 'hourly';
+            this._fadeToPage();
+            return Clutter.EVENT_STOP;
+        });
+
+        const dailyBtn = new St.Button({
+            child: new St.Icon({icon_name: 'x-office-calendar-symbolic', style: 'icon-size: 14px;'}),
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
+            style: 'padding: 2px 8px; border-radius: 4px;',
+        });
+        dailyBtn.connect('button-press-event', () => {
+            this._viewMode = 'daily';
+            this._fadeToPage();
+            return Clutter.EVENT_STOP;
+        });
+
+        toggleRow.add_child(hourlyBtn);
+        toggleRow.add_child(dailyBtn);
+        toggleItem.add_child(toggleRow);
+        this._indicator.menu.addMenuItem(toggleItem);
+    }
+
     disable() {
         if (this._timeoutId > 0) {
             GLib.Source.remove(this._timeoutId);
@@ -1018,6 +1246,7 @@ export default class WeatherExtension extends Extension {
         this._allForecast = [];
         this._allDaily = [];
         this._activeDay = null;
+        this._dayIndex = 0;
         this._location = '';
         this._bgContainer?.destroy();
         this._bgContainer = null;
