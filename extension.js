@@ -532,7 +532,7 @@ export default class WeatherExtension extends Extension {
             });
             const toggleBtn = new St.Button({
                 child: new St.Icon({
-                    icon_name: 'x-office-calendar-symbolic',
+                    icon_name: 'view-grid-symbolic',
                     style: 'icon-size: 14px;',
                 }),
                 reactive: true,
@@ -932,7 +932,7 @@ export default class WeatherExtension extends Extension {
             });
             const toggleBtn2 = new St.Button({
                 child: new St.Icon({
-                    icon_name: 'preferences-system-time-symbolic',
+                    icon_name: this._activeDay ? 'view-day-symbolic' : 'preferences-system-time-symbolic',
                     style: 'icon-size: 14px;',
                 }),
                 reactive: true,
