@@ -891,8 +891,8 @@ export default class WeatherExtension extends Extension {
                 row.add_child(dayLabel);
                 row.add_child(iconBox);
                 row.add_child(precipBox);
-                row.add_child(hiLoBox);
                 row.add_child(new St.Bin({x_expand: true}));
+                row.add_child(hiLoBox);
                 row.reactive = true;
                 row.track_hover = true;
                 row.connect('enter-event', () => { row.opacity = 180; });
