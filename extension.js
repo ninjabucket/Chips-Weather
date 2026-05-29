@@ -382,7 +382,7 @@ export default class WeatherExtension extends Extension {
                 const rightBox = new St.BoxLayout({style: 'spacing: 4px;'});
                 rightBox.add_child(ic);
                 rightBox.add_child(tp);
-                const detailBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
+                const detailBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'min-width: 60px;'});
                 if (pageItems[i].isDay) {
                     const uv = pageItems[i].uv;
                     let uvLabel = '', uvColor = '#fff';
@@ -395,7 +395,7 @@ export default class WeatherExtension extends Extension {
                     }
                     const uvText = new St.Label({
                         text: useUvColors ? `UV ${uv} ${uvLabel}` : `UV ${uv}`,
-                        style: `font-size: 10px; font-weight: bold; min-width: ${useUvColors ? '52' : '28'}px; color: ${uvColor};`,
+                        style: `font-size: 10px; font-weight: bold; min-width: 54px; color: ${uvColor};`,
                         x_align: Clutter.ActorAlign.CENTER,
                         y_align: Clutter.ActorAlign.CENTER,
                     });
@@ -821,7 +821,7 @@ export default class WeatherExtension extends Extension {
 
                 const dayLabel = new St.Label({
                     text: day.label,
-                    style: 'font-size: 12px; font-weight: bold; min-width: 40px;',
+                    style: 'font-size: 12px; font-weight: bold; min-width: 42px;',
                     x_align: Clutter.ActorAlign.START,
                     y_align: Clutter.ActorAlign.CENTER,
                 });
