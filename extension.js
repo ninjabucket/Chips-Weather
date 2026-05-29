@@ -83,6 +83,11 @@ const STATE_ABBR = {
     'district of columbia': 'DC',
 };
 
+const SHORT_WEEK = {
+    Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+    Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
+};
+
 const WEATHER_DESC = {
     0:  {day: 'Clear sky', night: 'Clear night'},
     1:  {day: 'Mainly sunny', night: 'Mainly clear'},
@@ -1125,8 +1130,8 @@ export default class WeatherExtension extends Extension {
 
         const day = this._allDaily[this._dayIndex];
         const todayName = new Date().toLocaleString('en-US', {weekday: 'long'});
-        const dayForecast = this._allForecast.filter(f =>
-            f.day === day.label || (day.label === 'Today' && f.day === todayName));
+        const targetDay = day.label === 'Today' ? todayName : (SHORT_WEEK[day.label] || day.label);
+        const dayForecast = this._allForecast.filter(f => f.day === targetDay);
 
         const morning = dayForecast.filter(f => f.hour >= 6 && f.hour < 12);
         const afternoon = dayForecast.filter(f => f.hour >= 12 && f.hour < 18);
@@ -1256,10 +1261,10 @@ export default class WeatherExtension extends Extension {
             style: 'spacing: 24px; padding: 0 0 2px 0;',
         });
         const hiCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-        hiCol.add_child(new St.Label({text: 'H', style: 'font-size: 9px; color: #ef5350;'}));
+        hiCol.add_child(new St.Label({text: 'H', style: 'font-size: 9px; color: #999;'}));
         hiCol.add_child(new St.Label({text: `${day.high}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
         const loCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-        loCol.add_child(new St.Label({text: 'L', style: 'font-size: 9px; color: #64b5f6;'}));
+        loCol.add_child(new St.Label({text: 'L', style: 'font-size: 9px; color: #999;'}));
         loCol.add_child(new St.Label({text: `${day.low}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
         if (avgFeels !== null) {
             const feelsCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
@@ -1289,17 +1294,17 @@ export default class WeatherExtension extends Extension {
             return box;
         };
         if (day.precip > 0)
-            detailGrid.add_child(makeDetail('weather-showers-symbolic', 'Precip', `${day.precip}%`, 'font-size: 11px; font-weight: bold; color: #64b5f6;'));
+            detailGrid.add_child(makeDetail('weather-showers-symbolic', 'Precip', `${day.precip}%`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
         if (maxUv > 0)
-            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'UV', `${maxUv} ${uvLabel(maxUv)}`, `font-size: 11px; font-weight: bold; color: ${uvColor(maxUv)};`));
+            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'UV', `${maxUv} ${uvLabel(maxUv)}`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
         if (avgWind !== null)
             detailGrid.add_child(makeDetail('weather-windy-symbolic', 'Wind', `${avgWind} km/h`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
         if (avgHumidity !== null)
             detailGrid.add_child(makeDetail('weather-fog-symbolic', 'Humidity', `${avgHumidity}%`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
         if (day.sunrise)
-            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'Sunrise', this._formatTime(day.sunrise), 'font-size: 11px; font-weight: bold; color: #ffca28;'));
+            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'Sunrise', this._formatTime(day.sunrise), 'font-size: 11px; font-weight: bold; color: #ddd;'));
         if (day.sunset)
-            detailGrid.add_child(makeDetail('weather-clear-night-symbolic', 'Sunset', this._formatTime(day.sunset), 'font-size: 11px; font-weight: bold; color: #ffa726;'));
+            detailGrid.add_child(makeDetail('weather-clear-night-symbolic', 'Sunset', this._formatTime(day.sunset), 'font-size: 11px; font-weight: bold; color: #ddd;'));
         detailItem.add_child(detailGrid);
         bgContainer.add_child(detailItem);
 
@@ -1338,7 +1343,7 @@ export default class WeatherExtension extends Extension {
             if (def.stats.precip > 0) {
                 descRow.add_child(new St.Label({
                     text: `• ${def.stats.precip}%`,
-                    style: 'font-size: 10px; color: #64b5f6;',
+                    style: 'font-size: 10px; color: #aaa;',
                 }));
             }
             midBox.add_child(descRow);
