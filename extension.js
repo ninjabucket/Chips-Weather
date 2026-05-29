@@ -821,25 +821,28 @@ export default class WeatherExtension extends Extension {
                     y_align: Clutter.ActorAlign.CENTER,
                 });
 
-                const iconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, style: 'width: 46px;'});
+                const iconBin = new St.Bin({style: 'width: 46px;', x_align: Clutter.ActorAlign.CENTER});
                 const dayIcon = new St.Icon({
                     icon_name: this._iconName(day.code, true),
                     style: 'icon-size: 20px; ',
                     y_align: Clutter.ActorAlign.CENTER,
                 });
-                iconBox.add_child(dayIcon);
+                iconBin.child = dayIcon;
                 if (day.code2) {
+                    const dualIconBox = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 2px;'});
                     const slash = new St.Label({
                         text: '/',
-                        style: 'font-size: 11px; color: #555; padding: 0 1px;',
+                        style: 'font-size: 11px; color: #555;',
                         y_align: Clutter.ActorAlign.CENTER,
                     });
                     const dayIcon2 = new St.Icon({
                         icon_name: this._iconName(day.code2, true),
                         style: 'icon-size: 16px; color: #888;',
                     });
-                    iconBox.add_child(slash);
-                    iconBox.add_child(dayIcon2);
+                    dualIconBox.add_child(dayIcon);
+                    dualIconBox.add_child(slash);
+                    dualIconBox.add_child(dayIcon2);
+                    iconBin.child = dualIconBox;
                 }
 
                 const tempColor = (t, isF) => {
@@ -889,7 +892,7 @@ export default class WeatherExtension extends Extension {
                 precipBox.add_child(precipLabel);
 
                 row.add_child(dayLabel);
-                row.add_child(iconBox);
+                row.add_child(iconBin);
                 row.add_child(precipBox);
                 row.add_child(new St.Bin({x_expand: true}));
                 row.add_child(hiLoBox);
