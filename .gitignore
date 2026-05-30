@@ -1,3 +1,6 @@
 chips-weather.zip
-sync.sh
 .sisyphus/
+venv/
+shexli-*.whl
+tree_sitter-*.whl
+tree_sitter_javascript-*.whl

@@ -1123,7 +1123,6 @@ export default class WeatherExtension extends Extension {
         const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
             ? '°F' : '°C';
         const isF = unit === '°F';
-        const useColors = this._settings?.get_boolean('use-colored-temps') !== false;
 
         if (this._allDaily.length === 0)
             return;
@@ -1158,34 +1157,6 @@ export default class WeatherExtension extends Extension {
 
         const summary = this._buildSummary(allPeriods);
 
-        const tempColor = (t) => {
-            if (!useColors) return '#fff';
-            if (isF) {
-                if (t < 32) return '#64b5f6';
-                if (t < 50) return '#42a5f5';
-                if (t < 65) return '#26a69a';
-                if (t < 75) return '#66bb6a';
-                if (t < 85) return '#ffca28';
-                if (t < 95) return '#ffa726';
-                return '#ef5350';
-            }
-            if (t < 0) return '#64b5f6';
-            if (t < 10) return '#42a5f5';
-            if (t < 18) return '#26a69a';
-            if (t < 24) return '#66bb6a';
-            if (t < 30) return '#ffca28';
-            if (t < 35) return '#ffa726';
-            return '#ef5350';
-        };
-
-        const uvColor = (uv) => {
-            if (uv <= 2) return '#8bc34a';
-            if (uv <= 5) return '#ffc107';
-            if (uv <= 7) return '#ff9800';
-            if (uv <= 10) return '#f44336';
-            return '#ce93d8';
-        };
-
         const uvLabel = (uv) => {
             if (uv <= 2) return 'Low';
             if (uv <= 5) return 'Moderate';
@@ -1194,200 +1165,272 @@ export default class WeatherExtension extends Extension {
             return 'Extreme';
         };
 
+        const tempRange = (t) => {
+            if (isF) {
+                if (t < 32) return {color: '#64b5f6', pct: 0};
+                if (t < 50) return {color: '#42a5f5', pct: 0.15};
+                if (t < 65) return {color: '#26a69a', pct: 0.35};
+                if (t < 75) return {color: '#66bb6a', pct: 0.5};
+                if (t < 85) return {color: '#ffca28', pct: 0.65};
+                if (t < 95) return {color: '#ffa726', pct: 0.85};
+                return {color: '#ef5350', pct: 1};
+            }
+            if (t < 0) return {color: '#64b5f6', pct: 0};
+            if (t < 10) return {color: '#42a5f5', pct: 0.15};
+            if (t < 18) return {color: '#26a69a', pct: 0.35};
+            if (t < 24) return {color: '#66bb6a', pct: 0.5};
+            if (t < 30) return {color: '#ffca28', pct: 0.65};
+            if (t < 35) return {color: '#ffa726', pct: 0.85};
+            return {color: '#ef5350', pct: 1};
+        };
+
         const bgContainer = new St.BoxLayout({
             style_class: 'weather-bg-box',
             vertical: true,
             opacity: 0,
         });
 
+        // ── Hero: Location → Day name → Temp → Feels Like → Condition → Summary ──
         if (this._location) {
-            const locItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const heroItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const heroOuter = new St.BoxLayout({
+                vertical: true,
+                x_expand: true,
+                x_align: Clutter.ActorAlign.CENTER,
+                style: 'padding: 4px 0 2px 0;',
+            });
             const locLabel = new St.Label({
                 text: this._location,
-                style: 'font-size: 10px; color: #888; padding: 0 0 2px 0;',
+                style: 'font-size: 11px; color: #999;',
                 x_align: Clutter.ActorAlign.CENTER,
                 x_expand: true,
             });
-            locItem.add_child(locLabel);
-            bgContainer.add_child(locItem);
-        }
+            heroOuter.add_child(locLabel);
 
-        const heroItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const heroBox = new St.BoxLayout({
-            vertical: true,
-            x_expand: true,
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'padding: 2px 0 0 0;',
-        });
-        const heroRow = new St.BoxLayout({
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 8px;',
-        });
-        const heroIcon = new St.Icon({
-            icon_name: this._iconName(day.code, true),
-            style: 'icon-size: 48px;',
-        });
-        const heroTemp = new St.Label({
-            text: `${day.high}°`,
-            style: 'font-size: 36px; font-weight: bold; color: #ddd;',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        heroRow.add_child(heroIcon);
-        heroRow.add_child(heroTemp);
-        heroBox.add_child(heroRow);
-
-        const descLabel = new St.Label({
-            text: this._weatherDesc(day.code, true),
-            style: 'font-size: 13px; color: #ccc; padding: 1px 0 0 0;',
-            x_align: Clutter.ActorAlign.CENTER,
-        });
-        heroBox.add_child(descLabel);
-
-        if (summary) {
-            const summaryLabel = new St.Label({
-                text: summary,
-                style: 'font-size: 10px; color: #999; padding: 2px 8px 0 8px;',
+            const nameRow = new St.BoxLayout({
                 x_align: Clutter.ActorAlign.CENTER,
+                style: 'spacing: 6px; padding: 2px 0 0 0;',
             });
-            heroBox.add_child(summaryLabel);
-        }
-        heroItem.add_child(heroBox);
-        bgContainer.add_child(heroItem);
-
-        const hiLoItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const hiLoRow = new St.BoxLayout({
-            x_expand: true,
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 24px; padding: 0 0 2px 0;',
-        });
-        const hiCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-        hiCol.add_child(new St.Label({text: 'H', style: 'font-size: 9px; color: #999;'}));
-        hiCol.add_child(new St.Label({text: `${day.high}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
-        const loCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-        loCol.add_child(new St.Label({text: 'L', style: 'font-size: 9px; color: #999;'}));
-        loCol.add_child(new St.Label({text: `${day.low}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
-        if (avgFeels !== null) {
-            const feelsCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER});
-            feelsCol.add_child(new St.Label({text: 'Feels', style: 'font-size: 9px; color: #999;'}));
-            feelsCol.add_child(new St.Label({text: `${avgFeels}°`, style: 'font-size: 20px; font-weight: bold; color: #ddd;'}));
-            hiLoRow.add_child(hiCol);
-            hiLoRow.add_child(loCol);
-            hiLoRow.add_child(feelsCol);
-        } else {
-            hiLoRow.add_child(hiCol);
-            hiLoRow.add_child(loCol);
-        }
-        hiLoItem.add_child(hiLoRow);
-        bgContainer.add_child(hiLoItem);
-
-        const detailItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-        const detailGrid = new St.BoxLayout({
-            x_expand: true,
-            x_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 16px; padding: 2px 0;',
-        });
-        const makeDetail = (icon, label, value, valueStyle) => {
-            const box = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 1px;'});
-            box.add_child(new St.Icon({icon_name: icon, style: 'icon-size: 12px; color: #888;'}));
-            box.add_child(new St.Label({text: value, style: valueStyle || 'font-size: 11px; font-weight: bold; color: #ddd;', x_align: Clutter.ActorAlign.CENTER}));
-            box.add_child(new St.Label({text: label, style: 'font-size: 9px; color: #777;', x_align: Clutter.ActorAlign.CENTER}));
-            return box;
-        };
-        if (day.precip > 0)
-            detailGrid.add_child(makeDetail('weather-showers-symbolic', 'Precip', `${day.precip}%`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        if (maxUv > 0)
-            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'UV', `${maxUv} ${uvLabel(maxUv)}`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        if (avgWind !== null)
-            detailGrid.add_child(makeDetail('weather-windy-symbolic', 'Wind', `${avgWind} km/h`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        if (avgHumidity !== null)
-            detailGrid.add_child(makeDetail('weather-fog-symbolic', 'Humidity', `${avgHumidity}%`, 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        if (day.sunrise)
-            detailGrid.add_child(makeDetail('weather-clear-symbolic', 'Sunrise', this._formatTime(day.sunrise), 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        if (day.sunset)
-            detailGrid.add_child(makeDetail('weather-clear-night-symbolic', 'Sunset', this._formatTime(day.sunset), 'font-size: 11px; font-weight: bold; color: #ddd;'));
-        detailItem.add_child(detailGrid);
-        bgContainer.add_child(detailItem);
-
-        bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
-
-        const periodDefs = [
-            {label: 'Morning', time: '6AM–12PM', stats: morningS},
-            {label: 'Afternoon', time: '12–6PM', stats: afternoonS},
-            {label: 'Evening', time: '6–9PM', stats: eveningS},
-            {label: 'Night', time: '9PM–6AM', stats: nightS},
-        ];
-
-        const buildPeriodCard = (def, idx) => {
-            if (!def.stats) return null;
-            const cardItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
-            const card = new St.BoxLayout({
-                x_expand: true,
-                style: `spacing: 6px; padding: 3px 6px;${idx % 2 === 0 ? ' background-color: rgba(255, 255, 255, 0.04);' : ''}`,
-            });
-
-            const periodIcon = new St.Icon({
-                icon_name: this._iconName(def.stats.code, def.stats.isDay),
+            const dayIcon = new St.Icon({
+                icon_name: this._iconName(day.code, true),
                 style: 'icon-size: 22px;',
                 y_align: Clutter.ActorAlign.CENTER,
             });
+            const dayName = new St.Label({
+                text: day.label,
+                style: 'font-size: 15px; font-weight: bold; color: #fff;',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            nameRow.add_child(dayIcon);
+            nameRow.add_child(dayName);
+            heroOuter.add_child(nameRow);
 
-            const midBox = new St.BoxLayout({vertical: true, x_expand: true});
-            const topRow = new St.BoxLayout({style: 'spacing: 6px;'});
-            topRow.add_child(new St.Label({text: def.label, style: 'font-size: 11px; font-weight: bold; color: #ddd;'}));
-            topRow.add_child(new St.Label({text: def.time, style: 'font-size: 10px; color: #666;'}));
-            midBox.add_child(topRow);
+            const tempRow = new St.BoxLayout({
+                x_align: Clutter.ActorAlign.CENTER,
+                style: 'spacing: 4px; padding: 0 0 0 0;',
+            });
+            const bigTemp = new St.Label({
+                text: `${day.high}°`,
+                style: 'font-size: 40px; font-weight: bold; color: #fff;',
+            });
+            tempRow.add_child(bigTemp);
+            heroOuter.add_child(tempRow);
 
-            const descText = this._weatherDesc(def.stats.code, def.stats.isDay);
-            const descRow = new St.BoxLayout({style: 'spacing: 6px;'});
-            descRow.add_child(new St.Label({text: descText, style: 'font-size: 11px; color: #aaa;'}));
-            if (def.stats.precip > 0) {
-                descRow.add_child(new St.Label({
-                    text: `• ${def.stats.precip}%`,
-                    style: 'font-size: 10px; color: #aaa;',
-                }));
+            if (avgFeels !== null) {
+                const feelsRow = new St.BoxLayout({
+                    x_align: Clutter.ActorAlign.CENTER,
+                    style: 'spacing: 4px;',
+                });
+                const feelsLabel = new St.Label({
+                    text: `Feels Like: ${avgFeels}°`,
+                    style: 'font-size: 13px; color: #ccc;',
+                });
+                feelsRow.add_child(feelsLabel);
+                heroOuter.add_child(feelsRow);
             }
-            midBox.add_child(descRow);
 
-            const rightBox = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.END, style: 'min-width: 40px;'});
-            rightBox.add_child(new St.Label({
-                text: `${def.stats.temp}°`,
-                style: 'font-size: 16px; font-weight: bold; color: #ddd;',
-                x_align: Clutter.ActorAlign.END,
-            }));
-            if (def.stats.feels !== def.stats.temp) {
-                rightBox.add_child(new St.Label({
-                    text: `Feels ${def.stats.feels}°`,
-                    style: 'font-size: 9px; color: #888;',
-                    x_align: Clutter.ActorAlign.END,
-                }));
+            const condLabel = new St.Label({
+                text: this._weatherDesc(day.code, true),
+                style: 'font-size: 13px; color: #ddd; padding: 4px 8px 0 8px;',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            heroOuter.add_child(condLabel);
+
+            if (summary) {
+                const sumLabel = new St.Label({
+                    text: summary,
+                    style: 'font-size: 10px; color: #aaa; padding: 2px 8px 0 8px;',
+                    x_align: Clutter.ActorAlign.CENTER,
+                });
+                heroOuter.add_child(sumLabel);
             }
 
-            card.add_child(periodIcon);
-            card.add_child(midBox);
-            card.add_child(rightBox);
-            cardItem.add_child(card);
-            return cardItem;
-        };
-
-        for (let i = 0; i < periodDefs.length; i++) {
-            const card = buildPeriodCard(periodDefs[i], i);
-            if (card) bgContainer.add_child(card);
+            heroItem.add_child(heroOuter);
+            bgContainer.add_child(heroItem);
         }
 
+        // ── Detail capsules row ──
+        const detailItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const detailRow = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            style: 'spacing: 10px; padding: 0 6px;',
+        });
+        const makeCapsule = (icon, value) => {
+            const cap = new St.BoxLayout({
+                style: 'spacing: 3px; padding: 2px 6px; border-radius: 4px; background-color: rgba(255,255,255,0.08);',
+            });
+            cap.add_child(new St.Icon({icon_name: icon, style: 'icon-size: 10px; color: #aaa;'}));
+            cap.add_child(new St.Label({text: value, style: 'font-size: 10px; color: #ddd;'}));
+            return cap;
+        };
+        if (day.precip > 0)
+            detailRow.add_child(makeCapsule('weather-showers-symbolic', `${day.precip}%`));
+        if (maxUv > 0)
+            detailRow.add_child(makeCapsule('weather-clear-symbolic', `${maxUv} ${uvLabel(maxUv)}`));
+        if (avgWind !== null)
+            detailRow.add_child(makeCapsule('weather-windy-symbolic', `${avgWind} km/h`));
+        if (avgHumidity !== null)
+            detailRow.add_child(makeCapsule('weather-fog-symbolic', `${avgHumidity}%`));
+        if (day.sunrise)
+            detailRow.add_child(makeCapsule('weather-clear-symbolic', this._formatTime(day.sunrise)));
+        if (day.sunset)
+            detailRow.add_child(makeCapsule('weather-clear-night-symbolic', this._formatTime(day.sunset)));
+        detailItem.add_child(detailRow);
+        bgContainer.add_child(detailItem);
+
+        // ── Hi / Lo / Feels with temp range bar ──
+        const rangeItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+        const rangeBox = new St.BoxLayout({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            style: 'padding: 2px 12px;',
+        });
+        const loR = tempRange(day.low);
+        const hiR = tempRange(day.high);
+        const barColor = loR.color;
+        const barPct = Math.round(((hiR.pct - loR.pct) / (hiR.pct || 1)) * 100);
+        const barStyle = `height: 4px; border-radius: 2px; background: linear-gradient(to right, ${loR.color}, ${hiR.color});`;
+        const rangeContent = new St.BoxLayout({vertical: true, x_expand: true, x_align: Clutter.ActorAlign.FILL});
+        const labelsRow = new St.BoxLayout({x_expand: true, x_align: Clutter.ActorAlign.FILL});
+        labelsRow.add_child(new St.Label({
+            text: `L: ${day.low}°`,
+            style: 'font-size: 11px; color: #999;',
+            x_align: Clutter.ActorAlign.START,
+        }));
+        if (avgFeels !== null) {
+            const feelsCenter = new St.Label({
+                text: `Feels ${avgFeels}°`,
+                style: 'font-size: 11px; color: #aaa;',
+                x_align: Clutter.ActorAlign.CENTER,
+                x_expand: true,
+            });
+            labelsRow.add_child(feelsCenter);
+        } else {
+            labelsRow.add_child(new St.Bin({x_expand: true}));
+        }
+        labelsRow.add_child(new St.Label({
+            text: `H: ${day.high}°`,
+            style: 'font-size: 11px; color: #ddd;',
+            x_align: Clutter.ActorAlign.END,
+        }));
+        rangeContent.add_child(labelsRow);
+        const bar = new St.Bin({style: barStyle, x_expand: true});
+        rangeContent.add_child(bar);
+        rangeBox.add_child(rangeContent);
+        rangeItem.add_child(rangeBox);
+        bgContainer.add_child(rangeItem);
+
+        // ── Separator ──
+        bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
+
+        // ── Period cards (Apple-style rows: label + icon + bar + temp) ──
+        const periodDefs = [
+            {label: 'Morning', stats: morningS},
+            {label: 'Afternoon', stats: afternoonS},
+            {label: 'Evening', stats: eveningS},
+            {label: 'Night', stats: nightS},
+        ];
+
+        for (let i = 0; i < periodDefs.length; i++) {
+            const def = periodDefs[i];
+            if (!def.stats) continue;
+            const cardItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
+            const card = new St.BoxLayout({
+                x_expand: true,
+                style: `spacing: 6px; padding: 3px 10px;${i % 2 === 0 ? ' background-color: rgba(255, 255, 255, 0.04);' : ''}`,
+            });
+
+            const iconCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.CENTER, style: 'min-width: 26px;'});
+            const pi = new St.Icon({
+                icon_name: this._iconName(def.stats.code, def.stats.isDay),
+                style: 'icon-size: 20px;',
+            });
+            iconCol.add_child(pi);
+            card.add_child(iconCol);
+
+            const midCol = new St.BoxLayout({vertical: true, x_expand: true});
+            const labelRow = new St.BoxLayout({style: 'spacing: 4px;'});
+            labelRow.add_child(new St.Label({
+                text: def.label,
+                style: 'font-size: 12px; font-weight: bold; color: #ddd;',
+            }));
+            if (def.stats.precip > 0) {
+                labelRow.add_child(new St.Label({
+                    text: `${def.stats.precip}%`,
+                    style: 'font-size: 10px; color: #64b5f6;',
+                }));
+            }
+            midCol.add_child(labelRow);
+
+            const descText = this._weatherDesc(def.stats.code, def.stats.isDay);
+            midCol.add_child(new St.Label({
+                text: descText,
+                style: 'font-size: 10px; color: #999;',
+            }));
+
+            const sR = tempRange(def.stats.temp);
+            const sPct = Math.round(((sR.pct - loR.pct) / ((hiR.pct - loR.pct) || 1)) * 100);
+            const dotStyle = `width: 6px; height: 6px; border-radius: 3px; background-color: ${sR.color}; margin-top: 2px;`;
+            const dotBar = new St.BoxLayout({style: 'spacing: 0; padding: 0;', x_expand: true});
+            const dotContainer = new St.BoxLayout({x_expand: true, style: `padding: 0;`});
+            if (sPct > 0) {
+                const leftPad = new St.Bin({style: `width: ${Math.min(sPct, 100)}px;`});
+                dotContainer.add_child(leftPad);
+            }
+            dotContainer.add_child(new St.Bin({style: dotStyle}));
+            dotBar.add_child(dotContainer);
+            midCol.add_child(dotBar);
+
+            card.add_child(midCol);
+
+            const tempCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.END, style: 'min-width: 36px;'});
+            tempCol.add_child(new St.Label({
+                text: `${def.stats.temp}°`,
+                style: 'font-size: 15px; font-weight: bold; color: #fff;',
+                x_align: Clutter.ActorAlign.END,
+            }));
+            card.add_child(tempCol);
+
+            cardItem.add_child(card);
+            bgContainer.add_child(cardItem);
+        }
+
+        // ── Nav + toggles ──
         bgContainer.add_child(new PopupMenu.PopupSeparatorMenuItem());
 
         const navItem = new PopupMenu.PopupBaseMenuItem({reactive: false});
         const navRow = new St.BoxLayout({
             x_expand: true,
             x_align: Clutter.ActorAlign.FILL,
-            style: 'padding: 2px 0;',
+            style: 'padding: 2px 6px;',
         });
         const prevBtn = new St.Button({
             label: '◀',
             reactive: true,
             can_focus: true,
             track_hover: true,
-            style_class: 'weather-nav-btn',
+            style: 'font-size: 16px; padding: 2px 8px; border-radius: 4px; color: #ccc;',
             x_align: Clutter.ActorAlign.START,
         });
         prevBtn.connect('button-press-event', () => {
@@ -1397,7 +1440,7 @@ export default class WeatherExtension extends Extension {
             }
             return Clutter.EVENT_STOP;
         });
-        const dayLabel = new St.Label({
+        const navLabel = new St.Label({
             text: day.label,
             y_align: Clutter.ActorAlign.CENTER,
             x_align: Clutter.ActorAlign.CENTER,
@@ -1409,7 +1452,7 @@ export default class WeatherExtension extends Extension {
             reactive: true,
             can_focus: true,
             track_hover: true,
-            style_class: 'weather-nav-btn',
+            style: 'font-size: 16px; padding: 2px 8px; border-radius: 4px; color: #ccc;',
             x_align: Clutter.ActorAlign.END,
         });
         nextBtn.connect('button-press-event', () => {
@@ -1420,7 +1463,7 @@ export default class WeatherExtension extends Extension {
             return Clutter.EVENT_STOP;
         });
         navRow.add_child(prevBtn);
-        navRow.add_child(dayLabel);
+        navRow.add_child(navLabel);
         navRow.add_child(nextBtn);
         navItem.add_child(navRow);
         bgContainer.add_child(navItem);
