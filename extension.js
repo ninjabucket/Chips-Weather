@@ -17,7 +17,7 @@
 
 //  Architecture
 //  ------------
-//  Data flow: ipapi.co (geolocate by IP) → open-meteo.com (48h hourly + 7d daily) → panel + popup.
+//  Data flow: ipinfo.io (geolocate by IP) → open-meteo.com (48h hourly + 7d daily) → panel + popup.
 //  GJS module system: uses gi:// imports (Soup 3.0 required) and resource:/// for GNOME Shell APIs.
 //  No npm, no fetch(), no Node.js — Soup.Session with Promise wrappers for async HTTP.
 
@@ -31,7 +31,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
-const GEO_API = 'https://ipapi.co/json/';
+const GEO_API = 'https://ipinfo.io/json';
 
 // WMO weather codes → GNOME symbolic icon names.
 // Full code table: https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-CODE/WMO4677.HTM
@@ -650,7 +650,7 @@ export default class WeatherExtension extends Extension {
         try {
             const loc = await this._getLocation();
             if (loc) {
-                const isUS = loc.country === 'United States';
+                const isUS = loc.country === 'US';
                 const region = isUS && loc.region
                     ? (STATE_ABBR[loc.region.toLowerCase()] || loc.region)
                     : '';
@@ -679,13 +679,16 @@ export default class WeatherExtension extends Extension {
                         const data = bytes?.get_data();
                         if (!data) { reject('No location data'); return; }
                         const json = JSON.parse(new TextDecoder().decode(data));
-                        if (json.latitude && json.longitude)
+                        const [latStr, lonStr] = (json.loc || '').split(',');
+                        const lat = parseFloat(latStr);
+                        const lon = parseFloat(lonStr);
+                        if (!isNaN(lat) && !isNaN(lon))
                             resolve({
-                                lat: json.latitude,
-                                lon: json.longitude,
+                                lat,
+                                lon,
                                 city: json.city || '',
                                 region: json.region || '',
-                                country: json.country_name || '',
+                                country: json.country || '',
                             });
                         else
                             reject('Could not determine location');
