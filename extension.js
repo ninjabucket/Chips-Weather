@@ -23,6 +23,7 @@
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import Soup from 'gi://Soup';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -104,6 +105,8 @@ const WEATHER_SHORT = {
     95: 'Storm', 96: 'Hail Storm', 99: 'Hail Storm',
 };
 
+const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+
 // Extension lifecycle: enable() creates everything, disable() must destroy/disconnect all.
 // GNOME Shell will hard-crash on reload if any references leak past disable().
 export default class WeatherExtension extends Extension {
@@ -137,6 +140,7 @@ export default class WeatherExtension extends Extension {
 
         this._indicator = new PanelMenu.Button(0.5, this.metadata.name, false);
         this._indicator.menu.connectObject('open-state-changed', (menu, open) => {
+            if (!open) this._hideTooltip();
             if (open && this._bgContainer) {
                 this._bgContainer.opacity = 0;
                 let step = 0;
@@ -230,6 +234,213 @@ export default class WeatherExtension extends Extension {
         });
         subItem.add_child(subLabel);
         this._indicator.menu.addMenuItem(subItem);
+    }
+
+    _formatTime(isoStr) {
+        if (!isoStr) return '';
+        const d = new Date(isoStr);
+        return d.toLocaleString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
+    }
+
+    _weatherDesc(code) {
+        return WEATHER_SHORT[code] || 'Unknown';
+    }
+
+    _windDir(deg) {
+        const i = Math.round(deg / 22.5) % 16;
+        return WIND_DIRS[i];
+    }
+
+    _windLabel(speed) {
+        if (speed < 5) return 'Calm';
+        if (speed < 20) return 'Light';
+        if (speed < 40) return 'Breezy';
+        if (speed < 60) return 'Windy';
+        if (speed < 80) return 'Strong';
+        return 'Gusty';
+    }
+
+    _daySummary(day, unit, isF) {
+        const desc = this._weatherDesc(day.code).toLowerCase();
+        let s = desc.charAt(0).toUpperCase() + desc.slice(1);
+        if (day.precip > 20)
+            s += `. ${day.precip}% chance of rain`;
+        else if (day.precip > 0)
+            s += ` with a ${day.precip}% chance of rain`;
+        if (day.windMax > 20) {
+            const dir = this._windDir(day.windDir);
+            const windSpeed = isF ? Math.round(day.windMax * 0.621371) : day.windMax;
+            const unit = isF ? 'mph' : 'km/h';
+            s += `. ${this._windLabel(day.windMax)} winds ${dir} ${windSpeed} ${unit}`;
+        }
+        s += `. High ${day.high}${unit}, low ${day.low}${unit}`;
+        return s;
+    }
+
+    _hideTooltip() {
+        if (this._tooltip) {
+            Main.uiGroup.remove_child(this._tooltip);
+            this._tooltip.destroy();
+            this._tooltip = null;
+        }
+    }
+
+    _showTooltip(row, day, unit, isF) {
+        this._hideTooltip();
+        const todayName = new Date().toLocaleString('en-US', {weekday: 'long'});
+        const shorts = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const idx = shorts.indexOf(day.label);
+        const targetDay = day.label === 'Today' ? todayName :
+            idx >= 0 ? weekdays[idx] : todayName;
+        const hours = this._allForecast.filter(f => f.day === targetDay);
+
+        const periodStats = (ph) => {
+            if (!ph || ph.length === 0) return null;
+            const avgTemp = Math.round(ph.reduce((s, h) => s + h.temp, 0) / ph.length);
+            const maxPrecip = Math.max(...ph.map(h => h.precip));
+            const codes = {};
+            for (const h of ph) codes[h.iconCode] = (codes[h.iconCode] || 0) + 1;
+            const dominant = parseInt(Object.entries(codes).sort((a, b) => b[1] - a[1])[0][0]);
+            return {temp: avgTemp, precip: maxPrecip, code: dominant, isDay: ph[0].isDay};
+        };
+
+        const avgFeels = hours.length > 0 ? Math.round(hours.reduce((s, h) => s + h.feels, 0) / hours.length) : null;
+        const avgHumidity = hours.length > 0 ? Math.round(hours.reduce((s, h) => s + h.humidity, 0) / hours.length) : null;
+        const maxWind = hours.length > 0 ? Math.max(...hours.map(h => h.wind)) : null;
+        const maxUv = hours.length > 0 ? Math.max(...hours.map(h => h.uv)) : null;
+
+        const uvLabel = (u) => {
+            if (u <= 2) return 'Low';
+            if (u <= 5) return 'Moderate';
+            if (u <= 7) return 'High';
+            if (u <= 10) return 'Very High';
+            return 'Extreme';
+        };
+
+        const morning = hours.filter(f => f.hour >= 6 && f.hour < 12);
+        const afternoon = hours.filter(f => f.hour >= 12 && f.hour < 18);
+        const evening = hours.filter(f => f.hour >= 18 && f.hour < 21);
+        const night = hours.filter(f => f.hour >= 21 || f.hour < 6);
+
+        const box = new St.BoxLayout({
+            vertical: true,
+            style: 'padding: 10px 12px; border-radius: 8px; background-color: rgba(30, 30, 30, 0.95); border: 1px solid rgba(255,255,255,0.15); spacing: 3px; width: 220px;',
+        });
+
+        const cond = this._weatherDesc(day.code);
+        const topRow = new St.BoxLayout({style: 'spacing: 8px; padding: 0 0 2px 0;'});
+        topRow.add_child(new St.Icon({
+            icon_name: this._iconName(day.code, true),
+            style: 'icon-size: 28px; color: #eee;',
+        }));
+        topRow.add_child(new St.Label({
+            text: cond,
+            style: 'font-size: 14px; font-weight: bold; color: #fff;',
+            y_align: Clutter.ActorAlign.CENTER,
+        }));
+        box.add_child(topRow);
+
+        const summary = this._daySummary(day, unit, isF);
+        const summaryLabel = new St.Label({
+            text: summary,
+            style: 'font-size: 11px; color: #bbb; padding: 0 0 6px 0;',
+            x_expand: true,
+        });
+        summaryLabel.clutter_text.line_wrap = true;
+        summaryLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD;
+        box.add_child(summaryLabel);
+
+        const hiloRow = new St.BoxLayout({style: 'spacing: 12px; padding: 2px 0;'});
+        hiloRow.add_child(new St.Label({text: `H: ${day.high}${unit}`, style: 'font-size: 12px; font-weight: bold; color: #eee;'}));
+        hiloRow.add_child(new St.Label({text: `L: ${day.low}${unit}`, style: 'font-size: 12px; color: #999;'}));
+        if (avgFeels !== null)
+            hiloRow.add_child(new St.Label({text: `Feels ${avgFeels}${unit}`, style: 'font-size: 12px; color: #aaa;'}));
+        box.add_child(hiloRow);
+
+        box.add_child(new St.Label({text: ' ', style: 'font-size: 2px;'}));
+
+        const detailRow = (label, value, color = '#aaa') => {
+            const r = new St.BoxLayout({style: 'spacing: 4px;'});
+            r.add_child(new St.Label({text: label, style: 'font-size: 11px; color: #777; min-width: 72px;'}));
+            r.add_child(new St.Label({text: value, style: `font-size: 11px; color: ${color};`}));
+            return r;
+        };
+
+        if (avgHumidity !== null)
+            box.add_child(detailRow('Humidity', `${avgHumidity}%`));
+        if (maxUv !== null && maxUv > 0) {
+            const uvC = maxUv <= 2 ? '#8bc34a' : maxUv <= 5 ? '#ffc107' : maxUv <= 7 ? '#ff9800' : '#f44336';
+            box.add_child(detailRow('UV Index', `${maxUv} ${uvLabel(maxUv)}`, uvC));
+        }
+        if (maxWind !== null) {
+            const windSpeed = isF ? Math.round(maxWind * 0.621371) : maxWind;
+            const windUnit = isF ? 'mph' : 'km/h';
+            box.add_child(detailRow('Wind', `${windSpeed} ${windUnit}`));
+        }
+        box.add_child(detailRow('Precip', `${day.precip}%`, '#64b5f6'));
+        if (day.sunrise) {
+            const sr = this._formatTime(day.sunrise);
+            const ss = this._formatTime(day.sunset);
+            if (sr && ss)
+                box.add_child(detailRow('Daylight', `${sr}–${ss}`, '#888'));
+        }
+
+        box.add_child(new St.Label({text: ' ', style: 'font-size: 4px;'}));
+
+        const periods = [
+            {label: 'Morning', stats: periodStats(morning)},
+            {label: 'Afternoon', stats: periodStats(afternoon)},
+            {label: 'Evening', stats: periodStats(evening)},
+            {label: 'Night', stats: periodStats(night)},
+        ];
+        const validPeriods = periods.filter(p => p.stats);
+        if (validPeriods.length > 0) {
+            box.add_child(new St.Label({text: ' ', style: 'font-size: 2px;'}));
+            for (const p of validPeriods) {
+                const pr = new St.BoxLayout({style: 'spacing: 4px;'});
+                pr.add_child(new St.Icon({
+                    icon_name: this._iconName(p.stats.code, p.stats.isDay),
+                    style: 'icon-size: 14px; min-width: 18px; color: #ccc;',
+                    y_align: Clutter.ActorAlign.CENTER,
+                }));
+                pr.add_child(new St.Label({text: p.label, style: 'font-size: 11px; font-weight: bold; color: #ddd; min-width: 68px;'}));
+                pr.add_child(new St.Label({text: `${p.stats.temp}${unit}`, style: 'font-size: 11px; color: #eee;'}));
+                pr.add_child(new St.Label({text: `${p.stats.precip}%`, style: 'font-size: 10px; color: #64b5f6;'}));
+                box.add_child(pr);
+            }
+        }
+
+        Main.uiGroup.add_child(box);
+
+        const [rowX, rowY] = row.get_transformed_position();
+        const rowH = row.get_allocation_box().y2 - row.get_allocation_box().y1;
+        const tipWidth = 210;
+        const stageW = global.stage.width;
+        const stageH = global.stage.height;
+
+        const menuActor = this._indicator.menu.actor || this._indicator.menu;
+        const [menuX, menuY] = menuActor.get_transformed_position();
+        const menuW = menuActor.get_allocation_box().x2 - menuActor.get_allocation_box().x1;
+        const menuRight = menuX + menuW;
+        const menuLeft = menuX;
+
+        let tipX;
+        if (stageW - menuRight >= tipWidth + 8) {
+            tipX = menuRight + 6;
+        } else if (menuLeft >= tipWidth + 8) {
+            tipX = menuLeft - tipWidth - 6;
+        } else {
+            tipX = Math.max(4, menuRight + 4);
+        }
+
+        const tipH = box.get_allocation_box().y2 - box.get_allocation_box().y1;
+        const rowCenter = rowY + (rowH / 2);
+        let tipY = rowCenter - (tipH / 2);
+        tipY = Math.max(4, Math.min(tipY, stageH - tipH - 8));
+
+        box.set_position(tipX, tipY);
+        this._tooltip = box;
     }
 
     _fadeToPage() {
@@ -367,10 +578,10 @@ export default class WeatherExtension extends Extension {
 
                 if (showPrecip) {
                     const precipTxt = `${f.precip}%`;
-                    const precipColor = f.precip > 0 ? '#64b5f6' : '#999';
-                    row.add_child(new St.Label({
-                        text: precipTxt,
-                        style: `font-size: 10px; color: ${precipColor}; min-width: 26px;`,
+const precipColor = '#64b5f6';
+                row.add_child(new St.Label({
+                    text: `${f.precip}%`,
+                    style: `font-size: 10px; color: ${precipColor}; min-width: 26px;`,
                         y_align: Clutter.ActorAlign.CENTER,
                     }));
                 }
@@ -624,9 +835,9 @@ export default class WeatherExtension extends Extension {
         const params = {
             latitude: lat.toString(),
             longitude: lon.toString(),
-            current: 'temperature_2m,weather_code,is_day',
-            hourly: 'temperature_2m,weather_code,is_day,uv_index,precipitation_probability',
-            daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+            current: 'temperature_2m,weather_code,is_day,apparent_temperature',
+            hourly: 'temperature_2m,weather_code,is_day,uv_index,precipitation_probability,apparent_temperature,relative_humidity_2m,wind_speed_10m',
+            daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant',
             timezone: 'auto',
         };
         if (isFahrenheit)
@@ -663,6 +874,9 @@ export default class WeatherExtension extends Extension {
                                 const hIsDay = hourly.is_day[idx] === 1
                                 const hUv = Math.round(hourly.uv_index[idx] ?? 0)
                                 const hPrecip = hourly.precipitation_probability?.[idx] ?? 0
+                                const hFeels = Math.round(hourly.apparent_temperature?.[idx] ?? hTemp)
+                                const hHumidity = Math.round(hourly.relative_humidity_2m?.[idx] ?? 0)
+                                const hWind = Math.round(hourly.wind_speed_10m?.[idx] ?? 0)
                                 const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), idx);
                                 const label = i === 0 ? 'Now' :
                                     dt.toLocaleString('en-US', {hour: 'numeric', hour12: true});
@@ -673,8 +887,12 @@ export default class WeatherExtension extends Extension {
                                     iconCode: hCode,
                                     isDay: hIsDay,
                                     day: dayKey,
+                                    hour: dt.getHours(),
                                     uv: hUv,
                                     precip: hPrecip,
+                                    feels: hFeels,
+                                    humidity: hHumidity,
+                                    wind: hWind,
                                 });
                             }
                             this._allForecast = items;
@@ -725,6 +943,10 @@ export default class WeatherExtension extends Extension {
                                         code: tc.primary,
                                         code2: tc.showBoth ? tc.secondary : null,
                                         precip: daily.precipitation_probability_max?.[d] ?? 0,
+                                        sunrise: daily.sunrise?.[d] ?? '',
+                                        sunset: daily.sunset?.[d] ?? '',
+                                        windMax: Math.round(daily.wind_speed_10m_max?.[d] ?? 0),
+                                        windDir: Math.round(daily.wind_direction_10m_dominant?.[d] ?? 0),
                                     });
                                 }
                                 this._allDaily = dailyItems;
@@ -820,7 +1042,7 @@ export default class WeatherExtension extends Extension {
                 });
                 row.add_child(icon);
 
-                const precipColor = day.precip > 0 ? '#64b5f6' : '#999';
+                const precipColor = '#64b5f6';
                 row.add_child(new St.Label({
                     text: `${day.precip}%`,
                     style: `font-size: 10px; color: ${precipColor}; min-width: 26px;`,
@@ -838,10 +1060,7 @@ export default class WeatherExtension extends Extension {
                 const loPct = ((day.low - weekMin) / weekRange) * 100;
                 const hiPct = ((day.high - weekMin) / weekRange) * 100;
                 const leftPad = Math.max(0, Math.round(loPct / 100 * barTotalPx));
-                const barWidth = Math.max(Math.round((hiPct - loPct) / 100 * barTotalPx), 6);
-                const rightPad = Math.max(0, barTotalPx - leftPad - barWidth);
-                const midTemp = Math.round((day.low + day.high) / 2);
-                const barColor = tempColor(midTemp);
+                const rightPad = Math.max(0, barTotalPx - leftPad - Math.max(Math.round((hiPct - loPct) / 100 * barTotalPx), 6));
 
                 const track = new St.BoxLayout({
                     x_expand: true,
@@ -850,9 +1069,28 @@ export default class WeatherExtension extends Extension {
                 });
                 if (leftPad > 0)
                     track.add_child(new St.Bin({style: `min-width: ${leftPad}px;`}));
-                track.add_child(new St.Bin({
-                    style: `min-width: ${barWidth}px; min-height: 4px; border-radius: 2px; background-color: ${barColor};`,
-                }));
+
+                const lowColor = tempColor(day.low);
+                const highColor = tempColor(day.high);
+                const segments = 8;
+                const lR = parseInt(lowColor.slice(1, 3), 16);
+                const lG = parseInt(lowColor.slice(3, 5), 16);
+                const lB = parseInt(lowColor.slice(5, 7), 16);
+                const hR = parseInt(highColor.slice(1, 3), 16);
+                const hG = parseInt(highColor.slice(3, 5), 16);
+                const hB = parseInt(highColor.slice(5, 7), 16);
+                const totalBarPx = barTotalPx - leftPad - rightPad;
+                const segW = Math.max(Math.round(totalBarPx / segments), 2);
+                for (let s = 0; s < segments; s++) {
+                    const t = s / (segments - 1 || 1);
+                    const r = Math.round(lR + (hR - lR) * t);
+                    const g = Math.round(lG + (hG - lG) * t);
+                    const b = Math.round(lB + (hB - lB) * t);
+                    const w = s < segments - 1 ? segW : Math.max(totalBarPx - segW * (segments - 1), 2);
+                    track.add_child(new St.Bin({
+                        style: `min-width: ${w}px; min-height: 4px; background-color: rgb(${r},${g},${b});${s === 0 ? ' border-radius: 2px 0 0 2px;' : ''}${s === segments - 1 ? ' border-radius: 0 2px 2px 0;' : ''}`,
+                    }));
+                }
                 if (rightPad > 0)
                     track.add_child(new St.Bin({style: `min-width: ${rightPad}px;`}));
                 row.add_child(track);
@@ -866,8 +1104,8 @@ export default class WeatherExtension extends Extension {
 
                 row.reactive = true;
                 row.track_hover = true;
-                row.connect('enter-event', () => { row.opacity = 180; });
-                row.connect('leave-event', () => { row.opacity = 255; });
+                row.connect('enter-event', () => { row.opacity = 180; this._showTooltip(row, day, unit, unit === '°F'); });
+                row.connect('leave-event', () => { row.opacity = 255; this._hideTooltip(); });
                 row.connect('button-press-event', () => {
                     const now = new Date();
                     const todayName = now.toLocaleString('en-US', {weekday: 'long'});
@@ -982,6 +1220,7 @@ export default class WeatherExtension extends Extension {
         this._allDaily = [];
         this._activeDay = null;
         this._location = '';
+        this._hideTooltip();
         this._bgContainer?.destroy();
         this._bgContainer = null;
         this._box?.destroy();
