@@ -26,3 +26,11 @@ graphify-out/
 .gitnexus/
 *.log
 .env
+
+# AI tooling (local only, not for GitHub)
+AGENTS.md
+CLAUDE.md
+opencode.json
+.claude/
+.sisyphus/
+*.whl
