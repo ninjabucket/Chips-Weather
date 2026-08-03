@@ -32,5 +32,30 @@
       <summary>Show precipitation</summary>
       <description>Display precipitation chance in hourly forecast rows</description>
     </key>
+    <key name="location-cache" type="s">
+      <default>""</default>
+      <summary>Cached geolocation</summary>
+      <description>Persisted IP-geolocation result in "lat,lon|city|region|country" format; empty triggers re-detect</description>
+    </key>
+    <key name="location-mode" type="s">
+      <default>"auto"</default>
+      <summary>Location source</summary>
+      <description>auto = IP geolocation, manual = postal code</description>
+    </key>
+    <key name="manual-postal-code" type="s">
+      <default>""</default>
+      <summary>Manual postal code</summary>
+      <description>ZIP/postal code for manual location override</description>
+    </key>
+    <key name="manual-country" type="s">
+      <default>"US"</default>
+      <summary>Manual country (ISO-2)</summary>
+      <description>ISO-2 country code to disambiguate postal code lookup</description>
+    </key>
+    <key name="manual-location-cache" type="s">
+      <default>""</default>
+      <summary>Cached manual geocode</summary>
+      <description>Persisted open-meteo geocoding result in lat,lon|city|region|country; empty triggers re-resolve</description>
+    </key>
   </schema>
 </schemalist>

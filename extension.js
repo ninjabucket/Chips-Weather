@@ -33,6 +33,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
 const GEO_API = 'https://ipinfo.io/json';
+const GEOCODE_API = 'https://geocoding-api.open-meteo.com/v1/search';
 
 // WMO weather codes → GNOME symbolic icon names.
 // Full code table: https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-CODE/WMO4677.HTM
@@ -135,6 +136,19 @@ export default class WeatherExtension extends Extension {
             'changed::use-colored-uv', () => { this._rebuildMenu(); },
             'changed::show-uv-index', () => { this._rebuildMenu(); },
             'changed::show-precipitation', () => { this._rebuildMenu(); },
+            'changed::location-cache', () => { this._updateWeather(); },
+            'changed::location-mode', () => {
+                this._settings?.set_string('manual-location-cache', '')
+                this._updateWeather()
+            },
+            'changed::manual-postal-code', () => {
+                this._settings?.set_string('manual-location-cache', '')
+                this._updateWeather()
+            },
+            'changed::manual-country', () => {
+                this._settings?.set_string('manual-location-cache', '')
+                this._updateWeather()
+            },
             this,
         );
 
@@ -778,9 +792,54 @@ const precipColor = '#64b5f6';
         }
     }
 
+    _parseLocationCache(str) {
+        if (!str) return null
+        const [coords, city, region, country] = str.split('|')
+        const [latStr, lonStr] = coords.split(',')
+        const lat = parseFloat(latStr)
+        const lon = parseFloat(lonStr)
+        if (isNaN(lat) || isNaN(lon)) return null
+        return {
+            lat,
+            lon,
+            city: city || '',
+            region: region || '',
+            country: country || '',
+        }
+    }
+
     async _updateWeather() {
         try {
-            const loc = await this._getLocation();
+            const mode = this._settings?.get_string('location-mode')
+            let loc
+            if (mode === 'manual') {
+                const mCached = this._settings?.get_string('manual-location-cache')
+                loc = this._parseLocationCache(mCached)
+                if (!loc) {
+                    const postal = this._settings?.get_string('manual-postal-code').trim()
+                    if (postal) {
+                        loc = await this._geocodePostal(
+                            postal,
+                            this._settings?.get_string('manual-country'),
+                        )
+                        if (loc) {
+                            this._settings.set_string(
+                                'manual-location-cache',
+                                `${loc.lat},${loc.lon}|${loc.city}|${loc.region}|${loc.country}`,
+                            )
+                        }
+                    }
+                }
+            } else {
+                const cached = this._settings?.get_string('location-cache')
+                loc = this._parseLocationCache(cached) || await this._getLocation()
+                if (loc && !cached) {
+                    this._settings.set_string(
+                        'location-cache',
+                        `${loc.lat},${loc.lon}|${loc.city}|${loc.region}|${loc.country}`,
+                    )
+                }
+            }
             if (loc) {
                 const isUS = loc.country === 'US';
                 const region = isUS && loc.region
@@ -827,6 +886,62 @@ const precipColor = '#64b5f6';
                     } catch (e) { reject(e); }
                 });
         });
+    }
+
+    _httpGetJson(url) {
+        const msg = Soup.Message.new('GET', url)
+        msg.request_headers.append('Accept', 'application/json')
+        msg.request_headers.append('User-Agent', 'ChipsWeather/1.0 (GNOME Shell extension)')
+        return new Promise((resolve, reject) => {
+            this._http.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null,
+                (_session, result) => {
+                    try {
+                        const bytes = this._http.send_and_read_finish(result)
+                        const data = bytes?.get_data()
+                        if (!data) { reject('No data'); return }
+                        resolve(JSON.parse(new TextDecoder().decode(data)))
+                    } catch (e) { reject(e) }
+                })
+        })
+    }
+
+    async _geocodePostal(postal, country) {
+        const omUrl = `${GEOCODE_API}?name=${encodeURIComponent(postal)}&count=10&language=en&format=json${country ? `&countryCode=${encodeURIComponent(country)}` : ''}`
+        const om = await this._httpGetJson(omUrl)
+        const results = om?.results
+        if (results && results.length > 0) {
+            const r = country
+                ? results.find(x => x.country_code === country)
+                : results[0]
+            if (r) {
+                return {
+                    lat: r.latitude,
+                    lon: r.longitude,
+                    city: r.name || '',
+                    region: r.admin1 || '',
+                    country: r.country_code || country || '',
+                }
+            }
+        }
+        if (country) {
+            const nmUrl = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postal)}&country=${encodeURIComponent(country)}&format=jsonv2&limit=1`
+            const nm = await this._httpGetJson(nmUrl)
+            if (nm && nm.length > 0) {
+                const lat = parseFloat(nm[0].lat)
+                const lon = parseFloat(nm[0].lon)
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const parts = (nm[0].display_name || '').split(', ')
+                    return {
+                        lat,
+                        lon,
+                        city: parts[1] || nm[0].name || '',
+                        region: parts[parts.length - 2] || '',
+                        country,
+                    }
+                }
+            }
+        }
+        throw new Error(`Postal code not found: ${postal}`)
     }
 
     _fetchWeather(lat, lon) {

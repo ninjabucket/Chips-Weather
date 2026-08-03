@@ -83,6 +83,67 @@ export default class WeatherPreferences extends ExtensionPreferences {
         });
         layoutGroup.add(uvColorRow);
 
+        const locGroup = new Adw.PreferencesGroup({title: 'Location'})
+        page.add(locGroup)
+
+        const sourceRow = new Adw.ComboRow({
+            title: 'Location Source',
+            subtitle: 'Auto detects via IP, manual uses postal code',
+            model: Gtk.StringList.new(['Auto (IP)', 'Manual (Postal Code)']),
+            selected: settings.get_string('location-mode') === 'manual' ? 1 : 0,
+        })
+        const manualRows = []
+        sourceRow.connect('notify::selected', () => {
+            const mode = sourceRow.selected === 1 ? 'manual' : 'auto'
+            settings.set_string('location-mode', mode)
+            for (const r of manualRows) r.visible = mode === 'manual'
+        })
+        locGroup.add(sourceRow)
+
+        const postalRow = new Adw.EntryRow({
+            title: 'Postal Code',
+            text: settings.get_string('manual-postal-code'),
+        })
+        postalRow.connect('notify::text', () => {
+            settings.set_string('manual-postal-code', postalRow.text)
+        })
+        postalRow.visible = settings.get_string('location-mode') === 'manual'
+        locGroup.add(postalRow)
+        manualRows.push(postalRow)
+
+        const countryRow = new Adw.EntryRow({
+            title: 'Country (ISO-2)',
+            text: settings.get_string('manual-country'),
+        })
+        countryRow.connect('notify::text', () => {
+            settings.set_string('manual-country', countryRow.text)
+        })
+        countryRow.visible = settings.get_string('location-mode') === 'manual'
+        locGroup.add(countryRow)
+        manualRows.push(countryRow)
+
+        const cachedMode = settings.get_string('location-mode') === 'manual'
+        const cachedKey = cachedMode ? 'manual-location-cache' : 'location-cache'
+        const cached = settings.get_string(cachedKey)
+        const locRow = new Adw.ActionRow({
+            title: cachedMode ? 'Resolved Manual Location' : 'Cached Location',
+            subtitle: cached
+                ? cached.split('|')[1] || 'detected'
+                : 'not cached — auto-detects on next refresh',
+        })
+        locGroup.add(locRow)
+
+        const redetectBtn = new Gtk.Button({
+            label: 'Re-detect Location',
+            tooltip_text: 'Clears cached locations; next refresh re-resolves',
+            valign: Gtk.Align.CENTER,
+        })
+        redetectBtn.connect('clicked', () => {
+            settings.set_string('location-cache', '')
+            settings.set_string('manual-location-cache', '')
+        })
+        locRow.add_suffix(redetectBtn)
+
         const displayGroup = new Adw.PreferencesGroup({title: 'Display'});
         page.add(displayGroup);
 
