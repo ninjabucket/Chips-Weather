@@ -17,7 +17,7 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
-import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 export default class WeatherPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -28,13 +28,13 @@ export default class WeatherPreferences extends ExtensionPreferences {
 
         const settings = this.getSettings();
 
-        const unitGroup = new Adw.PreferencesGroup({title: 'Units'});
+        const unitGroup = new Adw.PreferencesGroup({title: _('Units')});
         page.add(unitGroup);
 
         const unitRow = new Adw.ComboRow({
-            title: 'Temperature Unit',
-            subtitle: 'Choose Celsius or Fahrenheit',
-            model: Gtk.StringList.new(['Celsius', 'Fahrenheit']),
+            title: _('Temperature Unit'),
+            subtitle: _('Choose Celsius or Fahrenheit'),
+            model: Gtk.StringList.new([_('Celsius'), _('Fahrenheit')]),
             selected: settings.get_string('temperature-unit') === 'fahrenheit' ? 1 : 0,
         });
         unitRow.connect('notify::selected', () => {
@@ -46,13 +46,13 @@ export default class WeatherPreferences extends ExtensionPreferences {
         unitGroup.add(unitRow);
 
         // ---- Layout ----
-        const layoutGroup = new Adw.PreferencesGroup({title: 'Layout'});
+        const layoutGroup = new Adw.PreferencesGroup({title: _('Layout')});
         page.add(layoutGroup);
 
         const posRow = new Adw.ComboRow({
-            title: 'Temperature Position',
-            subtitle: 'Show temperature on the left or right of the icon',
-            model: Gtk.StringList.new(['Left', 'Right']),
+            title: _('Temperature Position'),
+            subtitle: _('Show temperature on the left or right of the icon'),
+            model: Gtk.StringList.new([_('Left'), _('Right')]),
             selected: settings.get_string('temperature-position') === 'right' ? 1 : 0,
         });
         posRow.connect('notify::selected', () => {
@@ -64,8 +64,8 @@ export default class WeatherPreferences extends ExtensionPreferences {
         layoutGroup.add(posRow);
 
         const colorRow = new Adw.SwitchRow({
-            title: 'Dynamic Temperature Color',
-            subtitle: 'Blue-to-red gradient in forecast rows',
+            title: _('Dynamic Temperature Color'),
+            subtitle: _('Blue-to-red gradient in forecast rows'),
             active: settings.get_boolean('use-colored-temps'),
         });
         colorRow.connect('notify::active', () => {
@@ -74,8 +74,8 @@ export default class WeatherPreferences extends ExtensionPreferences {
         layoutGroup.add(colorRow);
 
         const uvColorRow = new Adw.SwitchRow({
-            title: 'Dynamic UV Color',
-            subtitle: 'Color-coded UV index labels',
+            title: _('Dynamic UV Color'),
+            subtitle: _('Color-coded UV index labels'),
             active: settings.get_boolean('use-colored-uv'),
         });
         uvColorRow.connect('notify::active', () => {
@@ -83,13 +83,13 @@ export default class WeatherPreferences extends ExtensionPreferences {
         });
         layoutGroup.add(uvColorRow);
 
-        const locGroup = new Adw.PreferencesGroup({title: 'Location'})
+        const locGroup = new Adw.PreferencesGroup({title: _('Location')})
         page.add(locGroup)
 
         const sourceRow = new Adw.ComboRow({
-            title: 'Location Source',
-            subtitle: 'Auto detects via IP, manual uses postal code',
-            model: Gtk.StringList.new(['Auto (IP)', 'Manual (Postal Code)']),
+            title: _('Location Source'),
+            subtitle: _('Auto detects via IP, manual uses postal code'),
+            model: Gtk.StringList.new([_('Auto (IP)'), _('Manual (Postal Code)')]),
             selected: settings.get_string('location-mode') === 'manual' ? 1 : 0,
         })
         const manualRows = []
@@ -101,7 +101,7 @@ export default class WeatherPreferences extends ExtensionPreferences {
         locGroup.add(sourceRow)
 
         const postalRow = new Adw.EntryRow({
-            title: 'Postal Code',
+            title: _('Postal Code'),
             text: settings.get_string('manual-postal-code'),
         })
         postalRow.connect('notify::text', () => {
@@ -112,7 +112,7 @@ export default class WeatherPreferences extends ExtensionPreferences {
         manualRows.push(postalRow)
 
         const countryRow = new Adw.EntryRow({
-            title: 'Country (ISO-2)',
+            title: _('Country (ISO-2)'),
             text: settings.get_string('manual-country'),
         })
         countryRow.connect('notify::text', () => {
@@ -126,16 +126,16 @@ export default class WeatherPreferences extends ExtensionPreferences {
         const cachedKey = cachedMode ? 'manual-location-cache' : 'location-cache'
         const cached = settings.get_string(cachedKey)
         const locRow = new Adw.ActionRow({
-            title: cachedMode ? 'Resolved Manual Location' : 'Cached Location',
+            title: cachedMode ? _('Resolved Manual Location') : _('Cached Location'),
             subtitle: cached
-                ? cached.split('|')[1] || 'detected'
-                : 'not cached — auto-detects on next refresh',
+                ? cached.split('|')[1] || _('detected')
+                : _('not cached — auto-detects on next refresh'),
         })
         locGroup.add(locRow)
 
         const redetectBtn = new Gtk.Button({
-            label: 'Re-detect Location',
-            tooltip_text: 'Clears cached locations; next refresh re-resolves',
+            label: _('Re-detect Location'),
+            tooltip_text: _('Clears cached locations; next refresh re-resolves'),
             valign: Gtk.Align.CENTER,
         })
         redetectBtn.connect('clicked', () => {
@@ -144,12 +144,12 @@ export default class WeatherPreferences extends ExtensionPreferences {
         })
         locRow.add_suffix(redetectBtn)
 
-        const displayGroup = new Adw.PreferencesGroup({title: 'Display'});
+        const displayGroup = new Adw.PreferencesGroup({title: _('Display')});
         page.add(displayGroup);
 
         const uvShowRow = new Adw.SwitchRow({
-            title: 'Show UV Index',
-            subtitle: 'Display UV index in hourly forecast rows',
+            title: _('Show UV Index'),
+            subtitle: _('Display UV index in hourly forecast rows'),
             active: settings.get_boolean('show-uv-index'),
         });
         uvShowRow.connect('notify::active', () => {
@@ -158,8 +158,8 @@ export default class WeatherPreferences extends ExtensionPreferences {
         displayGroup.add(uvShowRow);
 
         const precipShowRow = new Adw.SwitchRow({
-            title: 'Show Rain Chance',
-            subtitle: 'Display precipitation probability in hourly forecast rows',
+            title: _('Show Rain Chance'),
+            subtitle: _('Display precipitation probability in hourly forecast rows'),
             active: settings.get_boolean('show-precipitation'),
         });
         precipShowRow.connect('notify::active', () => {

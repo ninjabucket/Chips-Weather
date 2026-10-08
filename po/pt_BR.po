@@ -1,0 +1,454 @@
+# Brazilian Portuguese translation for Chips Weather.
+# Copyright (C) 2026 chip
+# This file is distributed under the same license as the Chips Weather package.
+# Igor Giamoniano <igorgphotoarte@gmail.com>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Chips Weather\n"
+"Report-Msgid-Bugs-To: https://github.com/ninjabucket/Chips-Weather/issues\n"
+"POT-Creation-Date: 2026-10-08 18:56+0000\n"
+"PO-Revision-Date: 2026-10-08 18:27+0000\n"
+"Last-Translator: Igor Giamoniano <igorgphotoarte@gmail.com>\n"
+"Language-Team: Brazilian Portuguese <igorgphotoarte@gmail.com>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: extension.js:112
+msgid "Clear"
+msgstr "Céu limpo"
+
+#: extension.js:112
+msgid "Few Clouds"
+msgstr "Poucas nuvens"
+
+#: extension.js:112
+msgid "Partly Cloudy"
+msgstr "Parcialmente nublado"
+
+#: extension.js:112
+msgid "Overcast"
+msgstr "Encoberto"
+
+#: extension.js:113
+msgid "Foggy"
+msgstr "Nevoeiro"
+
+#: extension.js:113
+msgid "Rime Fog"
+msgstr "Nevoeiro congelante"
+
+#: extension.js:114
+msgid "Drizzle"
+msgstr "Garoa"
+
+#: extension.js:115
+msgid "Freezing Drizzle"
+msgstr "Garoa congelante"
+
+#: extension.js:116
+msgid "Rain"
+msgstr "Chuva"
+
+#: extension.js:116
+msgid "Heavy Rain"
+msgstr "Chuva forte"
+
+#: extension.js:117
+msgid "Freezing Rain"
+msgstr "Chuva congelante"
+
+#: extension.js:118
+msgid "Snow"
+msgstr "Neve"
+
+#: extension.js:118
+msgid "Heavy Snow"
+msgstr "Neve forte"
+
+#: extension.js:118
+msgid "Snow Grains"
+msgstr "Grãos de neve"
+
+#: extension.js:119
+msgid "Showers"
+msgstr "Pancadas de chuva"
+
+#: extension.js:119
+msgid "Heavy Showers"
+msgstr "Pancadas fortes de chuva"
+
+#: extension.js:120
+msgid "Snow Showers"
+msgstr "Pancadas de neve"
+
+#: extension.js:121
+msgid "Storm"
+msgstr "Tempestade"
+
+#: extension.js:121
+msgid "Hail Storm"
+msgstr "Tempestade de granizo"
+
+#: extension.js:127
+msgctxt "wind direction"
+msgid "N"
+msgstr "N"
+
+#: extension.js:127
+msgctxt "wind direction"
+msgid "NNE"
+msgstr "NNE"
+
+#: extension.js:128
+msgctxt "wind direction"
+msgid "NE"
+msgstr "NE"
+
+#: extension.js:128
+msgctxt "wind direction"
+msgid "ENE"
+msgstr "LNE"
+
+#: extension.js:129
+msgctxt "wind direction"
+msgid "E"
+msgstr "L"
+
+#: extension.js:129
+msgctxt "wind direction"
+msgid "ESE"
+msgstr "LSE"
+
+#: extension.js:130
+msgctxt "wind direction"
+msgid "SE"
+msgstr "SE"
+
+#: extension.js:130
+msgctxt "wind direction"
+msgid "SSE"
+msgstr "SSE"
+
+#: extension.js:131
+msgctxt "wind direction"
+msgid "S"
+msgstr "S"
+
+#: extension.js:131
+msgctxt "wind direction"
+msgid "SSW"
+msgstr "SSO"
+
+#: extension.js:132
+msgctxt "wind direction"
+msgid "SW"
+msgstr "SO"
+
+#: extension.js:132
+msgctxt "wind direction"
+msgid "WSW"
+msgstr "OSO"
+
+#: extension.js:133
+msgctxt "wind direction"
+msgid "W"
+msgstr "O"
+
+#: extension.js:133
+msgctxt "wind direction"
+msgid "WNW"
+msgstr "ONO"
+
+#: extension.js:134
+msgctxt "wind direction"
+msgid "NW"
+msgstr "NO"
+
+#: extension.js:134
+msgctxt "wind direction"
+msgid "NNW"
+msgstr "NNO"
+
+#: extension.js:294
+msgid "Unknown"
+msgstr "Desconhecido"
+
+#: extension.js:303
+msgid "Calm"
+msgstr "Calmo"
+
+#: extension.js:304
+msgid "Light"
+msgstr "Fraco"
+
+#: extension.js:305
+msgid "Breezy"
+msgstr "Brisa"
+
+#: extension.js:306
+msgid "Windy"
+msgstr "Ventoso"
+
+#: extension.js:307
+msgid "Strong"
+msgstr "Forte"
+
+#: extension.js:308
+msgid "Gusty"
+msgstr "Com rajadas"
+
+#: extension.js:315
+#, javascript-format
+msgid "%s. %d%% chance of rain"
+msgstr "%s. %d%% de chance de chuva"
+
+#: extension.js:317
+#, javascript-format
+msgid "%s with a %d%% chance of rain"
+msgstr "%s com %d%% de chance de chuva"
+
+#: extension.js:324
+#, javascript-format
+msgid "%s winds %s %d %s"
+msgstr "Vento %s de %s a %d %s"
+
+#: extension.js:329
+#, javascript-format
+msgid "High %s, low %s"
+msgstr "Máxima de %s, mínima de %s"
+
+#: extension.js:361
+msgctxt "UV index"
+msgid "Low"
+msgstr "Baixo"
+
+#: extension.js:362
+msgctxt "UV index"
+msgid "Moderate"
+msgstr "Moderado"
+
+#: extension.js:363
+msgctxt "UV index"
+msgid "High"
+msgstr "Alto"
+
+#: extension.js:364
+msgctxt "UV index"
+msgid "Very High"
+msgstr "Muito alto"
+
+#: extension.js:365
+msgctxt "UV index"
+msgid "Extreme"
+msgstr "Extremo"
+
+#: extension.js:402
+#, javascript-format
+msgctxt "high temperature"
+msgid "H: %s"
+msgstr "Máx: %s"
+
+#: extension.js:403
+#, javascript-format
+msgctxt "low temperature"
+msgid "L: %s"
+msgstr "Mín: %s"
+
+#: extension.js:405
+#, javascript-format
+msgid "Feels %s"
+msgstr "Sensação %s"
+
+#: extension.js:418
+msgid "Humidity"
+msgstr "Umidade"
+
+#: extension.js:421
+msgid "UV Index"
+msgstr "Índice UV"
+
+#: extension.js:426
+msgid "Wind"
+msgstr "Vento"
+
+#: extension.js:428
+msgid "Precip"
+msgstr "Chuva"
+
+#: extension.js:433
+msgid "Daylight"
+msgstr "Luz do dia"
+
+#: extension.js:439
+msgid "Morning"
+msgstr "Manhã"
+
+#: extension.js:440
+msgid "Afternoon"
+msgstr "Tarde"
+
+#: extension.js:441
+msgid "Evening"
+msgstr "Noite"
+
+#: extension.js:442
+msgid "Night"
+msgstr "Madrugada"
+
+#: extension.js:576
+msgid "Hourly"
+msgstr "Por hora"
+
+#: extension.js:584 extension.js:1081
+msgid "Today"
+msgstr "Hoje"
+
+#: extension.js:585
+#, javascript-format
+msgid "%s — Hourly"
+msgstr "%s — Por hora"
+
+#: extension.js:585
+msgctxt "day list separator"
+msgid " & "
+msgstr " e "
+
+#: extension.js:1028
+msgid "Now"
+msgstr "Agora"
+
+#: extension.js:1142
+msgid "7-Day Forecast"
+msgstr "Previsão de 7 dias"
+
+#: prefs.js:31
+msgid "Units"
+msgstr "Unidades"
+
+#: prefs.js:35
+msgid "Temperature Unit"
+msgstr "Unidade de temperatura"
+
+#: prefs.js:36
+msgid "Choose Celsius or Fahrenheit"
+msgstr "Escolha Celsius ou Fahrenheit"
+
+#: prefs.js:37
+msgid "Celsius"
+msgstr "Celsius"
+
+#: prefs.js:37
+msgid "Fahrenheit"
+msgstr "Fahrenheit"
+
+#: prefs.js:49
+msgid "Layout"
+msgstr "Disposição"
+
+#: prefs.js:53
+msgid "Temperature Position"
+msgstr "Posição da temperatura"
+
+#: prefs.js:54
+msgid "Show temperature on the left or right of the icon"
+msgstr "Exibe a temperatura à esquerda ou à direita do ícone"
+
+#: prefs.js:55
+msgid "Left"
+msgstr "Esquerda"
+
+#: prefs.js:55
+msgid "Right"
+msgstr "Direita"
+
+#: prefs.js:67
+msgid "Dynamic Temperature Color"
+msgstr "Cor dinâmica da temperatura"
+
+#: prefs.js:68
+msgid "Blue-to-red gradient in forecast rows"
+msgstr "Gradiente de azul a vermelho nas linhas da previsão"
+
+#: prefs.js:77
+msgid "Dynamic UV Color"
+msgstr "Cor dinâmica do UV"
+
+#: prefs.js:78
+msgid "Color-coded UV index labels"
+msgstr "Rótulos do índice UV com cores"
+
+#: prefs.js:86
+msgid "Location"
+msgstr "Localização"
+
+#: prefs.js:90
+msgid "Location Source"
+msgstr "Fonte da localização"
+
+#: prefs.js:91
+msgid "Auto detects via IP, manual uses postal code"
+msgstr "Automática detecta pelo IP, manual usa o CEP"
+
+#: prefs.js:92
+msgid "Auto (IP)"
+msgstr "Automática (IP)"
+
+#: prefs.js:92
+msgid "Manual (Postal Code)"
+msgstr "Manual (CEP)"
+
+#: prefs.js:104
+msgid "Postal Code"
+msgstr "CEP"
+
+#: prefs.js:115
+msgid "Country (ISO-2)"
+msgstr "País (ISO-2)"
+
+#: prefs.js:129
+msgid "Resolved Manual Location"
+msgstr "Localização manual resolvida"
+
+#: prefs.js:129
+msgid "Cached Location"
+msgstr "Localização em cache"
+
+#: prefs.js:131
+msgid "detected"
+msgstr "detectada"
+
+#: prefs.js:132
+msgid "not cached — auto-detects on next refresh"
+msgstr "sem cache — detecta na próxima atualização"
+
+#: prefs.js:137
+msgid "Re-detect Location"
+msgstr "Detectar novamente"
+
+#: prefs.js:138
+msgid "Clears cached locations; next refresh re-resolves"
+msgstr "Limpa as localizações em cache; a próxima atualização resolve de novo"
+
+#: prefs.js:147
+msgid "Display"
+msgstr "Exibição"
+
+#: prefs.js:151
+msgid "Show UV Index"
+msgstr "Exibir índice UV"
+
+#: prefs.js:152
+msgid "Display UV index in hourly forecast rows"
+msgstr "Exibe o índice UV nas linhas da previsão por hora"
+
+#: prefs.js:161
+msgid "Show Rain Chance"
+msgstr "Exibir chance de chuva"
+
+#: prefs.js:162
+msgid "Display precipitation probability in hourly forecast rows"
+msgstr "Exibe a probabilidade de precipitação nas linhas da previsão por hora"

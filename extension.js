@@ -26,10 +26,25 @@ import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
 import Soup from 'gi://Soup';
 import St from 'gi://St';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, gettext as _, pgettext as C_} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+
+// xgettext marker: tags a literal for extraction without translating it at
+// module load, for strings that live in a table and are translated at the
+// point of use.
+const N_ = (s) => s;
+
+// Same, for a string that carries a msgctxt. The marker must spell out the
+// same context the lookup uses, or the extracted entry will never match.
+const NC_ = (ctx, s) => s;
+
+// Minimal printf for translated format strings. Positional reordering is not
+// supported; switch the msgids to %1$s style if a translation needs the
+// arguments in another order.
+const fmt = (s, ...args) =>
+    s.replace(/%%|%[sd]/g, (m) => m === '%%' ? '%' : args.shift());
 
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
 const GEO_API = 'https://ipinfo.io/json';
@@ -94,19 +109,38 @@ const NIGHT_ICON_MAP = {
 
 // Short condition labels for hourly rows
 const WEATHER_SHORT = {
-    0: 'Clear', 1: 'Few Clouds', 2: 'Partly Cloudy', 3: 'Overcast',
-    45: 'Foggy', 48: 'Rime Fog',
-    51: 'Drizzle', 53: 'Drizzle', 55: 'Drizzle',
-    56: 'Freezing Drizzle', 57: 'Freezing Drizzle',
-    61: 'Rain', 63: 'Rain', 65: 'Heavy Rain',
-    66: 'Freezing Rain', 67: 'Freezing Rain',
-    71: 'Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
-    80: 'Showers', 81: 'Showers', 82: 'Heavy Showers',
-    85: 'Snow Showers', 86: 'Snow Showers',
-    95: 'Storm', 96: 'Hail Storm', 99: 'Hail Storm',
+    0: N_('Clear'), 1: N_('Few Clouds'), 2: N_('Partly Cloudy'), 3: N_('Overcast'),
+    45: N_('Foggy'), 48: N_('Rime Fog'),
+    51: N_('Drizzle'), 53: N_('Drizzle'), 55: N_('Drizzle'),
+    56: N_('Freezing Drizzle'), 57: N_('Freezing Drizzle'),
+    61: N_('Rain'), 63: N_('Rain'), 65: N_('Heavy Rain'),
+    66: N_('Freezing Rain'), 67: N_('Freezing Rain'),
+    71: N_('Snow'), 73: N_('Snow'), 75: N_('Heavy Snow'), 77: N_('Snow Grains'),
+    80: N_('Showers'), 81: N_('Showers'), 82: N_('Heavy Showers'),
+    85: N_('Snow Showers'), 86: N_('Snow Showers'),
+    95: N_('Storm'), 96: N_('Hail Storm'), 99: N_('Hail Storm'),
 };
 
-const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+// Single letters need a context: "N" on its own is not unambiguously
+// translatable.
+const WIND_DIRS = [
+    NC_('wind direction', 'N'), NC_('wind direction', 'NNE'),
+    NC_('wind direction', 'NE'), NC_('wind direction', 'ENE'),
+    NC_('wind direction', 'E'), NC_('wind direction', 'ESE'),
+    NC_('wind direction', 'SE'), NC_('wind direction', 'SSE'),
+    NC_('wind direction', 'S'), NC_('wind direction', 'SSW'),
+    NC_('wind direction', 'SW'), NC_('wind direction', 'WSW'),
+    NC_('wind direction', 'W'), NC_('wind direction', 'WNW'),
+    NC_('wind direction', 'NW'), NC_('wind direction', 'NNW'),
+];
+
+// Local calendar date (YYYY-MM-DD). Not toISOString(): that shifts to UTC
+// and can land on the previous day.
+const isoDate = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const dayName = (iso) =>
+    new Date(`${iso}T12:00:00`).toLocaleString(undefined, {weekday: 'long'});
 
 // Extension lifecycle: enable() creates everything, disable() must destroy/disconnect all.
 // GNOME Shell will hard-crash on reload if any references leak past disable().
@@ -253,42 +287,47 @@ export default class WeatherExtension extends Extension {
     _formatTime(isoStr) {
         if (!isoStr) return '';
         const d = new Date(isoStr);
-        return d.toLocaleString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
+        return d.toLocaleString(undefined, {hour: 'numeric', minute: '2-digit'});
     }
 
     _weatherDesc(code) {
-        return WEATHER_SHORT[code] || 'Unknown';
+        return _(WEATHER_SHORT[code] || N_('Unknown'));
     }
 
     _windDir(deg) {
         const i = Math.round(deg / 22.5) % 16;
-        return WIND_DIRS[i];
+        return C_('wind direction', WIND_DIRS[i]);
     }
 
     _windLabel(speed) {
-        if (speed < 5) return 'Calm';
-        if (speed < 20) return 'Light';
-        if (speed < 40) return 'Breezy';
-        if (speed < 60) return 'Windy';
-        if (speed < 80) return 'Strong';
-        return 'Gusty';
+        if (speed < 5) return _('Calm');
+        if (speed < 20) return _('Light');
+        if (speed < 40) return _('Breezy');
+        if (speed < 60) return _('Windy');
+        if (speed < 80) return _('Strong');
+        return _('Gusty');
     }
 
     _daySummary(day, unit, isF) {
-        const desc = this._weatherDesc(day.code).toLowerCase();
-        let s = desc.charAt(0).toUpperCase() + desc.slice(1);
+        const parts = [];
+        const cond = this._weatherDesc(day.code);
         if (day.precip > 20)
-            s += `. ${day.precip}% chance of rain`;
+            parts.push(fmt(_('%s. %d%% chance of rain'), cond, day.precip));
         else if (day.precip > 0)
-            s += ` with a ${day.precip}% chance of rain`;
+            parts.push(fmt(_('%s with a %d%% chance of rain'), cond, day.precip));
+        else
+            parts.push(cond);
         if (day.windMax > 20) {
-            const dir = this._windDir(day.windDir);
             const windSpeed = isF ? Math.round(day.windMax * 0.621371) : day.windMax;
-            const unit = isF ? 'mph' : 'km/h';
-            s += `. ${this._windLabel(day.windMax)} winds ${dir} ${windSpeed} ${unit}`;
+            const windUnit = isF ? 'mph' : 'km/h';
+            parts.push(fmt(
+                _('%s winds %s %d %s'),
+                this._windLabel(day.windMax), this._windDir(day.windDir),
+                windSpeed, windUnit));
         }
-        s += `. High ${day.high}${unit}, low ${day.low}${unit}`;
-        return s;
+        parts.push(fmt(
+            _('High %s, low %s'), `${day.high}${unit}`, `${day.low}${unit}`));
+        return `${parts.join('. ')}.`;
     }
 
     _hideTooltip() {
@@ -301,13 +340,7 @@ export default class WeatherExtension extends Extension {
 
     _showTooltip(row, day, unit, isF) {
         this._hideTooltip();
-        const todayName = new Date().toLocaleString('en-US', {weekday: 'long'});
-        const shorts = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        const idx = shorts.indexOf(day.label);
-        const targetDay = day.label === 'Today' ? todayName :
-            idx >= 0 ? weekdays[idx] : todayName;
-        const hours = this._allForecast.filter(f => f.day === targetDay);
+        const hours = this._allForecast.filter(f => f.date === day.date);
 
         const periodStats = (ph) => {
             if (!ph || ph.length === 0) return null;
@@ -325,11 +358,11 @@ export default class WeatherExtension extends Extension {
         const maxUv = hours.length > 0 ? Math.max(...hours.map(h => h.uv)) : null;
 
         const uvLabel = (u) => {
-            if (u <= 2) return 'Low';
-            if (u <= 5) return 'Moderate';
-            if (u <= 7) return 'High';
-            if (u <= 10) return 'Very High';
-            return 'Extreme';
+            if (u <= 2) return C_('UV index', 'Low');
+            if (u <= 5) return C_('UV index', 'Moderate');
+            if (u <= 7) return C_('UV index', 'High');
+            if (u <= 10) return C_('UV index', 'Very High');
+            return C_('UV index', 'Extreme');
         };
 
         const morning = hours.filter(f => f.hour >= 6 && f.hour < 12);
@@ -339,7 +372,7 @@ export default class WeatherExtension extends Extension {
 
         const box = new St.BoxLayout({
             vertical: true,
-            style: 'padding: 10px 12px; border-radius: 8px; background-color: rgba(30, 30, 30, 0.95); border: 1px solid rgba(255,255,255,0.15); spacing: 3px; width: 220px;',
+            style: 'padding: 10px 12px; border-radius: 8px; background-color: rgba(30, 30, 30, 0.95); border: 1px solid rgba(255,255,255,0.15); spacing: 3px; min-width: 220px;',
         });
 
         const cond = this._weatherDesc(day.code);
@@ -366,10 +399,10 @@ export default class WeatherExtension extends Extension {
         box.add_child(summaryLabel);
 
         const hiloRow = new St.BoxLayout({style: 'spacing: 12px; padding: 2px 0;'});
-        hiloRow.add_child(new St.Label({text: `H: ${day.high}${unit}`, style: 'font-size: 12px; font-weight: bold; color: #eee;'}));
-        hiloRow.add_child(new St.Label({text: `L: ${day.low}${unit}`, style: 'font-size: 12px; color: #999;'}));
+        hiloRow.add_child(new St.Label({text: fmt(C_('high temperature', 'H: %s'), `${day.high}${unit}`), style: 'font-size: 12px; font-weight: bold; color: #eee;'}));
+        hiloRow.add_child(new St.Label({text: fmt(C_('low temperature', 'L: %s'), `${day.low}${unit}`), style: 'font-size: 12px; color: #999;'}));
         if (avgFeels !== null)
-            hiloRow.add_child(new St.Label({text: `Feels ${avgFeels}${unit}`, style: 'font-size: 12px; color: #aaa;'}));
+            hiloRow.add_child(new St.Label({text: fmt(_('Feels %s'), `${avgFeels}${unit}`), style: 'font-size: 12px; color: #aaa;'}));
         box.add_child(hiloRow);
 
         box.add_child(new St.Label({text: ' ', style: 'font-size: 2px;'}));
@@ -382,31 +415,31 @@ export default class WeatherExtension extends Extension {
         };
 
         if (avgHumidity !== null)
-            box.add_child(detailRow('Humidity', `${avgHumidity}%`));
+            box.add_child(detailRow(_('Humidity'), `${avgHumidity}%`));
         if (maxUv !== null && maxUv > 0) {
             const uvC = maxUv <= 2 ? '#8bc34a' : maxUv <= 5 ? '#ffc107' : maxUv <= 7 ? '#ff9800' : '#f44336';
-            box.add_child(detailRow('UV Index', `${maxUv} ${uvLabel(maxUv)}`, uvC));
+            box.add_child(detailRow(_('UV Index'), `${maxUv} ${uvLabel(maxUv)}`, uvC));
         }
         if (maxWind !== null) {
             const windSpeed = isF ? Math.round(maxWind * 0.621371) : maxWind;
             const windUnit = isF ? 'mph' : 'km/h';
-            box.add_child(detailRow('Wind', `${windSpeed} ${windUnit}`));
+            box.add_child(detailRow(_('Wind'), `${windSpeed} ${windUnit}`));
         }
-        box.add_child(detailRow('Precip', `${day.precip}%`, '#64b5f6'));
+        box.add_child(detailRow(_('Precip'), `${day.precip}%`, '#64b5f6'));
         if (day.sunrise) {
             const sr = this._formatTime(day.sunrise);
             const ss = this._formatTime(day.sunset);
             if (sr && ss)
-                box.add_child(detailRow('Daylight', `${sr}–${ss}`, '#888'));
+                box.add_child(detailRow(_('Daylight'), `${sr}–${ss}`, '#888'));
         }
 
         box.add_child(new St.Label({text: ' ', style: 'font-size: 4px;'}));
 
         const periods = [
-            {label: 'Morning', stats: periodStats(morning)},
-            {label: 'Afternoon', stats: periodStats(afternoon)},
-            {label: 'Evening', stats: periodStats(evening)},
-            {label: 'Night', stats: periodStats(night)},
+            {label: _('Morning'), stats: periodStats(morning)},
+            {label: _('Afternoon'), stats: periodStats(afternoon)},
+            {label: _('Evening'), stats: periodStats(evening)},
+            {label: _('Night'), stats: periodStats(night)},
         ];
         const validPeriods = periods.filter(p => p.stats);
         if (validPeriods.length > 0) {
@@ -504,7 +537,7 @@ export default class WeatherExtension extends Extension {
 
         let forecast = this._allForecast;
         if (this._activeDay)
-            forecast = this._allForecast.filter(f => f.day === this._activeDay);
+            forecast = this._allForecast.filter(f => f.date === this._activeDay);
 
         const unit = (this._settings?.get_string('temperature-unit') === 'fahrenheit')
             ? '°F' : '°C';
@@ -531,25 +564,25 @@ export default class WeatherExtension extends Extension {
             return '#ef5350';
         };
 
-        const uvStyle = (uv) => {
-            if (uv <= 2) return {color: '#8bc34a', label: 'Low'};
-            if (uv <= 5) return {color: '#ffc107', label: 'Mod'};
-            if (uv <= 7) return {color: '#ff9800', label: 'High'};
-            if (uv <= 10) return {color: '#f44336', label: 'V.High'};
-            return {color: '#ce93d8', label: 'Extreme'};
+        const uvColor = (uv) => {
+            if (uv <= 2) return '#8bc34a';
+            if (uv <= 5) return '#ffc107';
+            if (uv <= 7) return '#ff9800';
+            if (uv <= 10) return '#f44336';
+            return '#ce93d8';
         };
 
         if (this._location) {
-            let subtitle = 'Hourly';
+            let subtitle = _('Hourly');
             if (forecast.length > 0) {
                 const perPage = 8;
-                const todayDay = this._allForecast[0]?.day || '';
+                const todayDate = this._allForecast[0]?.date || '';
                 const headerItems = forecast.slice(
                     this._forecastPage * perPage, this._forecastPage * perPage + perPage,
                 );
-                const days = [...new Set(headerItems.map(f => f.day).filter(Boolean))];
-                const labels = days.map(d => d === todayDay ? 'Today' : d);
-                subtitle = labels.join(' & ') + ' — Hourly';
+                const dates = [...new Set(headerItems.map(f => f.date).filter(Boolean))];
+                const labels = dates.map(d => d === todayDate ? _('Today') : dayName(d));
+                subtitle = fmt(_('%s — Hourly'), labels.join(C_('day list separator', ' & ')));
             }
             this._addHeader(subtitle);
         }
@@ -602,10 +635,9 @@ const precipColor = '#64b5f6';
 
                 if (showUv) {
                     if (f.isDay) {
-                        const uv = uvStyle(f.uv);
                         row.add_child(new St.Label({
                             text: `UV ${f.uv}`,
-                            style: `font-size: 10px; color: ${uv.color}; min-width: 30px;`,
+                            style: `font-size: 10px; color: ${uvColor(f.uv)}; min-width: 30px;`,
                             y_align: Clutter.ActorAlign.CENTER,
                         }));
                     } else {
@@ -617,7 +649,7 @@ const precipColor = '#64b5f6';
                     }
                 }
 
-                const cond = WEATHER_SHORT[f.iconCode] || '';
+                const cond = WEATHER_SHORT[f.iconCode] ? _(WEATHER_SHORT[f.iconCode]) : '';
                 if (cond) {
                     row.add_child(new St.Label({
                         text: cond,
@@ -993,15 +1025,14 @@ const precipColor = '#64b5f6';
                                 const hHumidity = Math.round(hourly.relative_humidity_2m?.[idx] ?? 0)
                                 const hWind = Math.round(hourly.wind_speed_10m?.[idx] ?? 0)
                                 const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), idx);
-                                const label = i === 0 ? 'Now' :
-                                    dt.toLocaleString('en-US', {hour: 'numeric', hour12: true});
-                                const dayKey = dt.toLocaleString('en-US', {weekday: 'long'});
+                                const label = i === 0 ? _('Now') :
+                                    dt.toLocaleString(undefined, {hour: 'numeric'});
                                 items.push({
                                     label,
                                     temp: hTemp,
                                     iconCode: hCode,
                                     isDay: hIsDay,
-                                    day: dayKey,
+                                    date: isoDate(dt),
                                     hour: dt.getHours(),
                                     uv: hUv,
                                     precip: hPrecip,
@@ -1042,13 +1073,13 @@ const precipColor = '#64b5f6';
                                     return {primary, secondary, showBoth};
                                 };
 
-                                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                const todayStr = isoDate(now);
                                 const dailyItems = [];
                                 for (let d = 0; d < daily.time.length; d++) {
                                     const date = daily.time[d];
                                     const dt = new Date(date + 'T12:00:00');
-                                    const dayLabel = date === todayStr ? 'Today' :
-                                        dt.toLocaleString('en-US', {weekday: 'short'});
+                                    const dayLabel = date === todayStr ? _('Today') :
+                                        dt.toLocaleString(undefined, {weekday: 'short'});
                                     const tc = topCodes(dayCodes[date]);
                                     dailyItems.push({
                                         label: dayLabel,
@@ -1108,14 +1139,13 @@ const precipColor = '#64b5f6';
         };
 
         if (this._location) {
-            let subtitle = '7-Day Forecast';
+            let subtitle = _('7-Day Forecast');
             if (this._allDaily.length >= 2) {
-                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                const first = new Date(this._allDaily[0].date + 'T12:00:00');
-                const last = new Date(this._allDaily[this._allDaily.length - 1].date + 'T12:00:00');
-                const fStr = `${months[first.getMonth()]} ${first.getDate()}`;
-                const lStr = `${months[last.getMonth()]} ${last.getDate()}`;
-                subtitle = `${fStr} — ${lStr}`;
+                const monthDay = (iso) => new Date(`${iso}T12:00:00`)
+                    .toLocaleString(undefined, {month: 'short', day: 'numeric'});
+                const first = monthDay(this._allDaily[0].date);
+                const last = monthDay(this._allDaily[this._allDaily.length - 1].date);
+                subtitle = `${first} — ${last}`;
             }
             this._addHeader(subtitle);
         }
@@ -1222,14 +1252,7 @@ const precipColor = '#64b5f6';
                 row.connect('enter-event', () => { row.opacity = 180; this._showTooltip(row, day, unit, unit === '°F'); });
                 row.connect('leave-event', () => { row.opacity = 255; this._hideTooltip(); });
                 row.connect('button-press-event', () => {
-                    const now = new Date();
-                    const todayName = now.toLocaleString('en-US', {weekday: 'long'});
-                    const shorts = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-                    const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-                    const idx = shorts.indexOf(day.label);
-                    const targetDay = day.label === 'Today' ? todayName :
-                        idx >= 0 ? weekdays[idx] : todayName;
-                    this._activeDay = targetDay;
+                    this._activeDay = day.date;
                     this._forecastPage = 0;
                     this._viewMode = 'hourly';
                     this._fadeToPage();
