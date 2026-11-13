@@ -10,7 +10,7 @@ GNOME Shell extension showing current weather in the panel with an hourly and da
 - **Color-coded temps** — blue-to-red gradient (optional)
 - **Color-coded UV** — WHO scale labels (optional)
 - **Mixed conditions** — dual icons when weather is split between two conditions
-- **Auto-location** — IP-based geolocation via ipapi.co
+- **Auto-location** — IP-based geolocation via ipinfo.io
 - **Open-Meteo** — free weather API, no key required
 - **Global** — US shows `City, ST`, everywhere else shows `City, Country`
 
@@ -18,7 +18,7 @@ GNOME Shell extension showing current weather in the panel with an hourly and da
 
 ## Compatibility
 
-GNOME Shell 45, 46, 47, 48, 49, 50
+GNOME Shell 45, 46, 47, 48, 49, 50, 51
 
 ## Installation
 
@@ -34,7 +34,7 @@ cp -r Chips-Weather ~/.local/share/gnome-shell/extensions/weather@chip
 glib-compile-schemas ~/.local/share/gnome-shell/extensions/weather@chip/schemas
 ```
 
-Restart GNOME Shell (Alt+F2 → `r` on X11, logout/login on Wayland), then enable in Extensions.
+Restart GNOME Shell (Alt+F2 → `r` on X11 sessions, GNOME 49 and earlier — X11 was removed in GNOME 50; on Wayland, log out and back in), then enable in Extensions.
 
 ## Preferences
 
@@ -46,7 +46,8 @@ Restart GNOME Shell (Alt+F2 → `r` on X11, logout/login on Wayland), then enabl
 ## Data Sources
 
 - Weather: [Open-Meteo](https://open-meteo.com)
-- Location: [ipapi.co](https://ipapi.co)
+- Location: [ipinfo.io](https://ipinfo.io)
+- Geocoding (manual postal codes): [Open-Meteo Geocoding](https://open-meteo.com/en/docs/geocoding-api) with [OpenStreetMap Nominatim](https://nominatim.org) fallback
 
 ## License
 

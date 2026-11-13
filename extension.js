@@ -27,6 +27,7 @@ import Pango from 'gi://Pango';
 import Soup from 'gi://Soup';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -107,6 +108,13 @@ const WEATHER_SHORT = {
 };
 
 const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+
+// St.BoxLayout gained an `orientation` property in GNOME 48 and `vertical`
+// was removed in GNOME 51, so pick the supported property per version.
+const SHELL_MAJOR = parseInt(Config.PACKAGE_VERSION.split('.')[0], 10);
+const VERTICAL = SHELL_MAJOR >= 48
+    ? {orientation: Clutter.Orientation.VERTICAL}
+    : {vertical: true};
 
 // Extension lifecycle: enable() creates everything, disable() must destroy/disconnect all.
 // GNOME Shell will hard-crash on reload if any references leak past disable().
@@ -338,7 +346,7 @@ export default class WeatherExtension extends Extension {
         const night = hours.filter(f => f.hour >= 21 || f.hour < 6);
 
         const box = new St.BoxLayout({
-            vertical: true,
+            ...VERTICAL,
             style: 'padding: 10px 12px; border-radius: 8px; background-color: rgba(30, 30, 30, 0.95); border: 1px solid rgba(255,255,255,0.15); spacing: 3px; width: 220px;',
         });
 
@@ -563,7 +571,7 @@ export default class WeatherExtension extends Extension {
 
             const bgContainer = new St.BoxLayout({
                 style_class: 'weather-bg-box',
-                vertical: true,
+                ...VERTICAL,
                 opacity: 0,
             });
 
@@ -750,7 +758,7 @@ const precipColor = '#64b5f6';
             });
             toggleRow.add_child(toggleBtn);
 
-            const bottomBox = new St.BoxLayout({vertical: true, x_expand: true});
+            const bottomBox = new St.BoxLayout({...VERTICAL, x_expand: true});
             bottomBox.add_child(navRow);
             bottomBox.add_child(toggleRow);
 
@@ -1130,7 +1138,7 @@ const precipColor = '#64b5f6';
 
             const bgContainer = new St.BoxLayout({
                 style_class: 'weather-bg-box',
-                vertical: true,
+                ...VERTICAL,
                 opacity: 0,
             });
 
